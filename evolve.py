@@ -44,6 +44,7 @@ class Result:
 
 def evaluate(env, moves, *, policy=None, decisions=0, decision_ticks=ACTION_TICKS, pace=False):
     initial = env.reset()
+    env.watch_status(phase="Running controller", detail="Choosing movements from live observations.", targets=[])
     observation = initial
     start = perf_counter()
     waypoint = 1
@@ -52,6 +53,17 @@ def evaluate(env, moves, *, policy=None, decisions=0, decision_ticks=ACTION_TICK
     for action, ticks in chain(moves, repeat((None, decision_ticks), decisions)):
         if action is None:
             action = policy(observation, WAYPOINTS[min(waypoint, len(WAYPOINTS) - 1)])
+        if env.fit_window and observation.player is not None:
+            points = [observation.player]
+            if policy is not None and hasattr(policy, "actions"):
+                for planned_action in (action, *policy.actions):
+                    keys = ACTIONS[planned_action]
+                    dx = int("ArrowRight" in keys) - int("ArrowLeft" in keys)
+                    dy = int("ArrowDown" in keys) - int("ArrowUp" in keys)
+                    x, y = points[-1]
+                    points.append((x + dx * 3 * ticks, y + dy * 3 * ticks))
+            env.watch_status(route=points, targets=getattr(policy, "targets", []),
+                             progress=f"{len(replay)} decisions")
         if pace:
             # Draw each tick in watch mode, but keep the same decision boundaries.
             for _ in range(ticks):
@@ -62,8 +74,12 @@ def evaluate(env, moves, *, policy=None, decisions=0, decision_ticks=ACTION_TICK
             observation = env.step(ACTIONS[action], ticks=ticks)
         replay.append((action, ticks))
         if observation.level_marker is not None and observation.level_marker != initial.level_marker:
+            env.watch_status(phase="Cleared", detail="The original game confirmed the next level.",
+                             route=[], targets=[], clearTraces=True)
             return Result(best_progress, tuple(replay), False, True)
         if observation.death_marker is not None and observation.death_marker != initial.death_marker:
+            env.watch_status(phase="Died", detail="The death counter changed during the attempted route.",
+                             clearTraces=True)
             return Result(best_progress, tuple(replay), True, False)
         if observation.player is None:
             continue
@@ -77,6 +93,7 @@ def evaluate(env, moves, *, policy=None, decisions=0, decision_ticks=ACTION_TICK
                 break
             waypoint += 1
             best_progress = float(waypoint - 1)
+    env.watch_status(phase="Time limit", detail="The controller exhausted its decision budget without confirming a clear.")
     return Result(best_progress, tuple(replay), False, False)
 
 

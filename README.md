@@ -2,6 +2,8 @@
 
 The environment runs `WHGOriginal.swf` in a hidden Chromium, Google Chrome, or Microsoft Edge session using Ruffle Web. It advances a virtual browser clock at the game's native 30 fps and lets the original SWF handle movement, collisions, and level progression.
 
+![example1](example1.png)
+
 ## First-time setup (macOS and Windows)
 
 Use Python 3.10+ and run commands from the project folder. The original
@@ -238,7 +240,89 @@ python benchmark_levels.py --watch --step-through --failures-from level_benchmar
 
 The game renders at 550 × 400 with a logical pixel density of 1, including on Retina and other high-DPI displays. Watch mode enlarges that surface with CSS; resizing the window does not change simulation resolution or controller coordinates. Both screenshots and obstacle forecasting use the same logical coordinate system.
 
-Watch mode reruns the planner. It plays any full or partial route in a visible window. Resize or maximize the browser window to enlarge the game. If the planner finds no route, it leaves the level at spawn and prints the reason in the terminal. Omit `--step-through` to move on automatically after three seconds. Watch mode saves results only when you pass `--output`.
+Watch mode reruns the planner. It plays any full or partial route in a visible window. Resize or maximize the browser window to enlarge the game. If the planner finds no route, it leaves the level at spawn and prints the reason in the terminal. Omit `--step-through` to move on automatically after three seconds. Watch mode saves results only when you pass `--output`. With `--step-through`, use the browser’s **Next level** button after each attempt; the last result stays open until you click **Finish benchmark**.
+
+### Watch diagnostics and overlays
+
+For a single-screen workflow, run:
+
+```sh
+python benchmark_levels.py --browser chrome --watch --step-through
+```
+
+A status card over the game shows the current level, phase, simulated ticks, and
+move/decision count. Final outcomes and explanations appear in the result banner.
+The sidebar contains display controls, fixed descriptions, and a 30-level progress
+grid; it does not show changing phase text or an activity log.
+For levels 3–30, phases distinguish reading the level, observing enemies, planning,
+following a full or partial route, and checking the outcome. Levels 1–2 show the
+live controller’s current route and outcome. This is planner telemetry, not a copy
+of all terminal output.
+
+Use the panel’s checkboxes to toggle:
+
+- **Route & targets:** a thin cyan dashed guide to planned movement and target
+  rings. The live planners refresh the remaining route each decision; the
+  screen-derived planner shows its full planned route. These are intended moves,
+  not a guarantee that the route will succeed.
+- **Player trail:** a short amber history of detected player positions.
+- **Enemy samples:** faint purple positions detected during live observations
+  (levels 1–2), or sampled from the idle recording (levels 3–30). These are observed
+  positions, not predicted future trajectories or stable enemy identities.
+
+Enemy observation runs without real-time playback delays. Its samples are taken
+immediately after the game’s own animation callbacks, avoiding a second set of
+animation timers. In short 180-tick Chrome tests on the Mac, recording took about
+2.7–2.8 seconds instead of 4.6–4.7 seconds, with identical hazard forecasts on levels
+3 and 13. Timing varies by machine and level. Preparation still needs to simulate
+the complete forecast; it cannot skip game frames without changing the evidence
+used by the planner.
+
+Preparation gameplay is shown by default. Disable **Show preparation gameplay** to
+cover the idle observation and planning stages with a **Preparing attempt** screen.
+The status card and side panel stay visible, and gameplay is revealed when the attempt starts (or
+when the result is ready if no route exists). This presentation option does not
+shorten the forecast or alter game captures.
+
+Final outcomes appear in a large banner over the game and update the level grid:
+
+- **Green:** cleared.
+- **Yellow:** an attempted run that died, a partial route, a time limit, or an exit
+  that was not confirmed. A death after following a partial route stays yellow.
+- **Red:** no route found, or an unmodeled level where no attempt could be made.
+
+The level grid uses those same colors, with grey for levels not yet attempted in
+this browser run and a white outline around the current level. Results remain in
+the grid as the benchmark moves between levels. Cells include status labels as
+well as color; the grid is a session summary, not saved progress or navigation.
+
+As soon as an attempt’s rendered level marker changes or its player disappears,
+the display holds the last gameplay frame in the same animation callback, before
+the next level or tip screen is painted. The status briefly says **Confirming
+outcome** while the live game continues behind the held frame. Only a confirmed
+level transition produces the green clear banner; touching green alone does not.
+If gameplay returns without a transition, the display resumes normally. A confirmed
+death removes the provisional hold and shows the yellow result. Frame retention is
+armed only during attempts. It requires the original level marker and a visible player, and stops when a result is determined. Some
+levels transition before drawing the square fully inside the green region, so the
+held image can show it just reaching the exit. Clear detection still uses the live
+SWF’s level transition, not visual proximity to green. The held frame is a separate
+display canvas; observations and obstacle forecasts continue to read the live game.
+
+The banner includes the outcome text and explanation, so meaning does not depend
+on color. It and the held frame clear when the next attempt starts. With `--step-through`, it remains
+visible until you advance; otherwise the existing three-second result pause applies.
+
+Route guides are enabled by default; player trails and enemy samples are off. Overlays are separate SVG elements above
+the Ruffle canvas; game screenshots and hazard detection read the original canvas.
+The panel and overlays do not advance the virtual clock. Display updates add some
+wall-clock overhead in watch mode. Headless runs do not create the panel.
+
+The layout places controls and the level grid beside the game on wider windows and
+below it on narrow windows. Phase information and the Next level button stay over
+the game. With `--step-through`, you can read the result and continue entirely
+inside the browser. Without it, the benchmark still advances after three seconds.
+Other watch commands also show the shared panel, with fewer task-specific details.
 
 ## Connect a controller
 

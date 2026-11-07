@@ -71,11 +71,7 @@ CAPTURE = """() => {
     }
     const start = performance.now(), frames = [];
     sample();
-    function frame() {
-        sample();
-        window.benchmarkCapture.id = requestAnimationFrame(frame);
-    }
-    window.benchmarkCapture = {frames, id: requestAnimationFrame(frame)};
+    window.benchmarkCapture = {frames, sample};
 }"""
 
 
@@ -143,11 +139,20 @@ def layout(image, origin, exit_center):
 
 def record_hazards(env, origin, ticks):
     env.page.evaluate(CAPTURE)
-    env.step(ticks=ticks, observe=False)
-    frames = env.page.evaluate("""() => {
-        cancelAnimationFrame(window.benchmarkCapture.id);
-        return window.benchmarkCapture.frames;
-    }""")
+    try:
+        env.step(ticks=ticks, observe=False)
+    finally:
+        frames = env.page.evaluate("""() => {
+            const capture = window.benchmarkCapture;
+            window.benchmarkCapture = null;
+            return capture.frames;
+        }""")
+    env.watch_status(tick=env.tick)
+    if env.fit_window:
+        samples = [((left + right) / 2, (top + bottom) / 2)
+                   for _, boxes in frames[::max(1, len(frames) // 24)]
+                   for left, top, right, bottom in boxes]
+        env.watch_status(enemySamples=samples[::max(1, len(samples) // 240)][:240])
     timeline = []
     frame_index = 0
     origin_x, origin_y = origin
@@ -264,6 +269,7 @@ def attempt_screen_planner(env, level, ticks, *, watch=False):
     if env.page.url == "about:blank":
         # Match the warm reset phase used for the replay when starting with a subset.
         env.reset(level)
+    env.watch_status(phase="Reading level", detail="Locating the floor, pellets, spawn, and exit.")
     start = env.reset(level)
     exit_center = level_exits((ROOT / "WHGOriginal.swf").read_bytes()).get(level)
     if exit_center is None:
@@ -275,17 +281,31 @@ def attempt_screen_planner(env, level, ticks, *, watch=False):
         return {**details, "status": "unmodeled", "reason": "could not infer spawn floor or exit"}
     if watch:
         print("  Recording enemy movement, then planning the route.", flush=True)
+    targets = [*pellets, exit_center]
+    env.watch_status(phase="Observing enemies", detail=f"Recording {ticks} ticks of enemy movement before planning.", targets=targets)
     timeline = record_hazards(env, start.player, ticks)
+    recorded_samples = env.watch_state.get("enemySamples", [])
+    env.watch_status(phase="Planning route", detail="Searching for safe moves through the recorded enemy positions.")
     actions, reason = plan(start.player, tiles, pellets, exits, timeline)
     if not actions:
         if watch:
             env.reset(level)
+        env.watch_status(targets=targets, enemySamples=recorded_samples)
         return {**details, "status": "no route", "reason": reason}
     initial = env.reset(level)
     if initial.frame_signature != start.frame_signature:
         return {**details, "status": "unmodeled", "reason": "idle forecast and replay starts differ"}
     if watch:
         print(f"  Watching the {'partial' if reason else 'planned'} route from spawn.", flush=True)
+    points = [start.player]
+    for action in actions:
+        dx, dy = PLANNER_DIRECTIONS[action]
+        x, y = points[-1]
+        points.append((x + dx * STRIDE * STEP, y + dy * STRIDE * STEP))
+    env.watch_status(phase="Following partial route" if reason else "Following route",
+                     detail=reason or "Playing the planned route from spawn.",
+                     route=points, targets=targets, enemySamples=recorded_samples,
+                     progress=f"0 / {len(actions)} moves")
     started = perf_counter()
 
     def step(keys=()):
@@ -300,6 +320,7 @@ def attempt_screen_planner(env, level, ticks, *, watch=False):
     for index, action in enumerate(actions, 1):
         observation = step(PLANNER_KEYS[action])
         details["moves"] = index
+        env.watch_status(progress=f"{index} / {len(actions)} moves")
         if observation.level_marker is not None and observation.level_marker != initial.level_marker:
             status = "cleared"
             break
@@ -308,6 +329,7 @@ def attempt_screen_planner(env, level, ticks, *, watch=False):
             break
     if status not in {"cleared", "died"}:
         # The player can disappear during the transition to the next level.
+        env.watch_status(phase="Checking outcome", detail="Waiting for a level transition or confirmed death.")
         settle_ticks = 90 if observation.player is None else 30
         for _ in range(settle_ticks // STEP):
             observation = step()
@@ -330,7 +352,7 @@ def main():
     parser.add_argument("--output", type=Path, help="Save results to this file.")
     parser.add_argument("--watch", action="store_true", help="Show each attempt in a visible window.")
     parser.add_argument("--step-through", action="store_true",
-                        help="In watch mode, wait for Enter between levels.")
+                        help="In watch mode, advance with the browser's Next level button.")
     add_browser_argument(parser)
     args = parser.parse_args()
     if args.step_through and not args.watch:
@@ -360,6 +382,9 @@ def main():
                             track_enemies=True, fit_window=args.watch)
             for index, level in enumerate(levels, 1):
                 print(f"Testing level {level}/30", flush=True)
+                env.watch_status(level=level, run=f"{index} of {len(levels)} selected",
+                                 phase="Starting level", detail="Resetting the original game.",
+                                 progress="", route=[], targets=[])
                 if level <= 2:
                     env.level = level
                     result = (attempt(env, 0, pace=args.watch) if level == 1
@@ -373,9 +398,20 @@ def main():
                     output.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
                 print(f"  {result['status']}" + (f" ({result['reason']})" if result.get("reason") else ""),
                       flush=True)
+                explanation = result.get("reason") or {
+                    "cleared": "The original game confirmed the next level.",
+                    "died": "The death counter changed: the attempted route collided with a hazard.",
+                    "time limit": "The controller exhausted its decision budget without confirming a clear.",
+                    "exit not confirmed": "The route ended without a confirmed level transition.",
+                }.get(result["status"], "The planner could not complete this level.")
+                env.watch_status(phase=result["status"].capitalize(), detail=explanation)
+                if result["status"] == "cleared":
+                    env.watch_status(route=[], targets=[], clearTraces=True)
+                elif result["status"] == "died":
+                    env.watch_status(clearTraces=True)
                 if args.watch:
-                    if args.step_through and index < len(levels):
-                        input("  Press Enter in this terminal for the next level. ")
+                    if args.step_through:
+                        env.wait_for_next(final=index == len(levels))
                     else:
                         sleep(3)
         finally:

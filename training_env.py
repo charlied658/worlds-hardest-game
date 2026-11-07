@@ -15,6 +15,7 @@ from playwright.sync_api import Error as PlaywrightError, sync_playwright
 
 from direct_start import start_at_level
 from ruffle_smoke_test import player_center
+from watch_ui import WATCH_UI
 
 
 ROOT = Path(__file__).resolve().parent
@@ -36,7 +37,12 @@ window.requestAnimationFrame = callback => {{
     // A reset may leave a queued callback from a disposed Ruffle instance.
     const owner = generation;
     return requestFrame(time => {{
-        if (owner === generation) callback(time);
+        if (owner === generation) {{
+            callback(time);
+            // Sample the rendered frame without scheduling another clock timer.
+            window.benchmarkCapture?.sample?.();
+            window.watchUI?.sampleFrame();
+        }}
     }});
 }};
 </script>
@@ -48,6 +54,7 @@ window.addEventListener("DOMContentLoaded", () => {{
     window.startMovie = async path => {{
       window.movieReady = false;
       window.movieError = null;
+      window.benchmarkCapture = null;
       generation++;
       if (player) player.remove();
       localStorage.clear();
@@ -57,7 +64,7 @@ window.addEventListener("DOMContentLoaded", () => {{
         }}
         const data = await movies.get(path);
         player = window.RufflePlayer.newest().createPlayer();
-        document.body.appendChild(player);
+        (document.getElementById("game-stage") || document.body).appendChild(player);
         await player.ruffle().load({{
             data, autoplay: "on", splashScreen: false,
             unmuteOverlay: "hidden", allowScriptAccess: false,
@@ -194,6 +201,7 @@ class RuffleEnv:
         self.level = level
         self.track_enemies = track_enemies
         self.fit_window = fit_window
+        self.watch_state = {}
         self.swf = (ROOT / "WHGOriginal.swf").read_bytes() if direct_reset else None
         self.assets = {"/game.swf": ROOT / "WHGOriginal.swf"}
         self.assets.update(
@@ -247,19 +255,11 @@ class RuffleEnv:
         else:
             self.page.goto(ORIGIN, wait_until="domcontentloaded", timeout=15_000)
             if self.fit_window:
-                self.page.add_style_tag(content="""
-                    ruffle-player {
-                        transform-origin: top left;
-                        transform: scale(var(--stage-scale, 1));
-                    }
-                    body { overflow: hidden; }
-                """)
-                self.page.evaluate("""([width, height]) => {
-                    const fit = () => document.documentElement.style.setProperty(
-                        "--stage-scale", Math.min(innerWidth / width, innerHeight / height));
-                    addEventListener("resize", fit);
-                    fit();
-                }""", [WIDTH, HEIGHT])
+                self.page.evaluate(WATCH_UI)
+                self.watch_status(**self.watch_state)
+        if self.fit_window:
+            self.page.evaluate("window.watchUI.reset()")
+            self.watch_status(level=selected_level, tick=0)
         self.page.evaluate("path => { void window.startMovie(path); }", path)
         self.page.wait_for_function(
             "window.movieReady || window.movieError", polling=25, timeout=15_000
@@ -277,6 +277,24 @@ class RuffleEnv:
                 self._click(x, y)
                 self._advance(ticks)
         self.tick = 0
+
+    def watch_status(self, **changes):
+        """Publish diagnostics without changing the simulated clock or game pixels."""
+        if not self.fit_window:
+            return
+        self.watch_state.update(changes)
+        if self.page.url == f"{ORIGIN}/":
+            self.page.evaluate("state => window.watchUI?.update(state)", changes)
+
+    def wait_for_next(self, *, final=False):
+        """Leave the result visible until the user advances in the browser."""
+        if not self.fit_window:
+            return
+        self.watch_status(waiting=True)
+        if final:
+            self.page.locator("#watch-next").evaluate("button => button.textContent = 'Finish benchmark'")
+        self.page.wait_for_function("window.watchUI.next", polling=100, timeout=0)
+        self.watch_status(waiting=False)
 
     def _click(self, x, y):
         if self.fit_window:
@@ -343,6 +361,7 @@ class RuffleEnv:
                     enemies = level_one_enemies(screenshot)
                 elif self.track_enemies and self.active_level == 2:
                     enemies, pellet = level_two_objects(screenshot)
+        self.watch_status(tick=self.tick, player=position, enemies=enemies)
         return Observation(self.tick, position, signature, level_marker, death_marker, enemies, pellet)
 
 
@@ -378,6 +397,7 @@ def benchmark(env, runs):
 def watch_replay(env, replay=REPLAY):
     initial = env.reset()
     print("Playing replay.", flush=True)
+    env.watch_status(phase="Playing replay", detail="Replaying saved movement inputs.")
     start = perf_counter()
     for keys, ticks in replay:
         for _ in range(ticks):
@@ -385,6 +405,7 @@ def watch_replay(env, replay=REPLAY):
             sleep(max(0, start + env.tick / FPS - perf_counter()))
     final = env.observe()
     print(f"Player position: {initial.player} -> {final.player}", flush=True)
+    env.watch_status(phase="Replay complete", detail=f"Player position: {initial.player} → {final.player}")
     sleep(3)
 
 

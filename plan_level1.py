@@ -104,6 +104,7 @@ def route(position, forecast, *, floor=FLOOR, goal=GOAL, pellet=None):
 
 class Planner:
     def __init__(self):
+        self.targets = (GOAL,)
         self.previous = None
         self.actions = deque()
 
@@ -136,6 +137,7 @@ def enemy_y(phase, ticks):
 
 class LevelTwoPlanner:
     def __init__(self):
+        self.targets = ((275, 200), LEVEL_TWO_GOAL)
         self.previous = None
         self.actions = deque()
         self.collected = False
@@ -145,6 +147,7 @@ class LevelTwoPlanner:
         if (observation.player is None or previous is None or len(observation.enemies) != 12
                 or len(previous.enemies) != 12):
             return 0
+        self.targets = ((observation.pellet,) if observation.pellet is not None else ()) + (LEVEL_TWO_GOAL,)
         if observation.pellet is None:
             self.collected = True
         if self.collected and observation.player[0] >= LEVEL_TWO_GOAL[0]:
