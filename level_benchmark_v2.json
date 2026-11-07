@@ -1,0 +1,254 @@
+[
+  {
+    "level": 1,
+    "status": "cleared",
+    "ticks": 246
+  },
+  {
+    "level": 2,
+    "status": "cleared",
+    "ticks": 219
+  },
+  {
+    "level": 3,
+    "pellets_visible": 1,
+    "moves": 94,
+    "status": "partial route",
+    "reason": "exit route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 4,
+    "pellets_visible": 3,
+    "moves": 41,
+    "status": "died",
+    "reason": "exit route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 5,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 6,
+    "pellets_visible": 4,
+    "moves": 226,
+    "status": "cleared",
+    "reason": null,
+    "initial_rerun_status": "exit not confirmed",
+    "forecast_ticks": 780
+  },
+  {
+    "level": 7,
+    "pellets_visible": 4,
+    "moves": 169,
+    "status": "cleared",
+    "reason": null,
+    "initial_rerun_status": "exit not confirmed",
+    "forecast_ticks": 780
+  },
+  {
+    "level": 8,
+    "pellets_visible": 3,
+    "moves": 63,
+    "status": "partial route",
+    "reason": "pellet route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 9,
+    "pellets_visible": 1,
+    "moves": 195,
+    "status": "cleared",
+    "reason": null,
+    "initial_rerun_status": "exit not confirmed",
+    "forecast_ticks": 780,
+    "initial_classification": "exit not confirmed",
+    "verification": "Next-level HUD observed on a tip screen"
+  },
+  {
+    "level": 10,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 11,
+    "pellets_visible": 2,
+    "moves": 117,
+    "status": "partial route",
+    "reason": "exit route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 12,
+    "pellets_visible": 1,
+    "moves": 0,
+    "status": "no route",
+    "reason": "pellet route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 13,
+    "pellets_visible": 0,
+    "moves": 31,
+    "status": "cleared",
+    "reason": null,
+    "initial_rerun_status": "exit not confirmed",
+    "forecast_ticks": 780
+  },
+  {
+    "level": 14,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 15,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 16,
+    "pellets_visible": 4,
+    "moves": 36,
+    "status": "died",
+    "reason": "pellet route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 17,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable",
+    "initial_rerun_status": "unmodeled",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 18,
+    "pellets_visible": 67,
+    "moves": 12,
+    "status": "died",
+    "reason": "pellet route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 19,
+    "pellets_visible": 0,
+    "moves": 58,
+    "status": "cleared",
+    "reason": null,
+    "initial_rerun_status": "exit not confirmed",
+    "forecast_ticks": 540,
+    "initial_classification": "exit not confirmed",
+    "verification": "Next-level HUD observed on a tip screen"
+  },
+  {
+    "level": 20,
+    "pellets_visible": 7,
+    "moves": 93,
+    "status": "partial route",
+    "reason": "pellet route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 21,
+    "pellets_visible": 3,
+    "moves": 121,
+    "status": "cleared",
+    "reason": null,
+    "initial_rerun_status": "exit not confirmed",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 22,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 23,
+    "pellets_visible": 36,
+    "moves": 14,
+    "status": "died",
+    "reason": "pellet route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 24,
+    "pellets_visible": 0,
+    "moves": 112,
+    "status": "cleared",
+    "reason": null,
+    "initial_rerun_status": "exit not confirmed",
+    "forecast_ticks": 540,
+    "initial_classification": "exit not confirmed",
+    "verification": "Next-level HUD observed on a tip screen"
+  },
+  {
+    "level": 25,
+    "pellets_visible": 0,
+    "moves": 114,
+    "status": "cleared",
+    "reason": null,
+    "initial_rerun_status": "exit not confirmed",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 26,
+    "pellets_visible": 4,
+    "moves": 147,
+    "status": "died",
+    "reason": "pellet route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 27,
+    "pellets_visible": 1,
+    "moves": 101,
+    "status": "checkpoint only",
+    "reason": "Replay stopped at check2; the SWF exit is check3.",
+    "forecast_ticks": 540,
+    "initial_classification": "exit not confirmed"
+  },
+  {
+    "level": 28,
+    "pellets_visible": 0,
+    "moves": 125,
+    "status": "cleared",
+    "reason": null,
+    "forecast_ticks": 540,
+    "initial_classification": "exit not confirmed",
+    "verification": "Level 29 gameplay observed on replay"
+  },
+  {
+    "level": 29,
+    "pellets_visible": 2,
+    "moves": 38,
+    "status": "died",
+    "reason": "pellet route unavailable",
+    "forecast_ticks": 540
+  },
+  {
+    "level": 30,
+    "pellets_visible": 4,
+    "moves": 202,
+    "status": "partial route",
+    "reason": "exit route unavailable",
+    "forecast_ticks": 540
+  }
+]

@@ -99,9 +99,9 @@ Level 2 uses the same search with a different map and a forecast for the twelve 
 python benchmark_levels.py
 ```
 
-The benchmark starts each level independently and saves its outcome in `level_benchmark.json`. Levels 1 and 2 use the tuned planners. For levels 3–30, the benchmark infers a tile map, pellets, and green zones from the screen, records enemy motion during an idle run, and tests the resulting plan in a fresh run. The default forecast covers 300 game ticks. Use `--levels 3 4` to run a subset and `--output other_results.json` to keep it separate.
+The benchmark starts each level independently and saves its outcome in `level_benchmark.json`. Levels 1 and 2 use the tuned planners. For levels 3–30, it infers the floor and pellets from the screen and uses the last named checkpoint in the SWF to identify the exit. The exit can be the same region as spawn. The benchmark records enemy motion during an idle run and tests the resulting plan in a fresh run. It searches cardinal and diagonal moves, checks collisions every game tick, and searches for a reachable remaining pellet before routing to the exit. The default forecast covers 540 game ticks, including any rotations and reversals during that window. Use `--levels 3 4` to run a subset and `--output other_results.json` to keep it separate.
 
-A clear requires the original game to show the next level. A death is a collision confirmed by the death counter. The other outcomes distinguish a missing route within the search budget, a partial route, an unconfirmed exit, or a layout the screen-based planner could not model. The final win screen would need a separate check for a level 30 clear.
+A clear requires the original game to show the next level number, including on a tip screen. A death is a collision confirmed by the death counter. If a search cannot find a route, the terminal identifies whether the inferred floor disconnects the target, the forecast is too short, enemy clearance blocks the explored routes, or the search hits its state limit. The final win screen would need a separate check for a level 30 clear.
 
 To watch the failed levels one at a time:
 
@@ -109,7 +109,7 @@ To watch the failed levels one at a time:
 python benchmark_levels.py --watch --step-through --failures-from level_benchmark.json
 ```
 
-Watch mode reruns the planner. It plays any full or partial route in a visible window. If the planner finds no route, it leaves the level at spawn and prints the reason in the terminal. Omit `--step-through` to move on automatically after three seconds. Watch mode saves results only when you pass `--output`.
+Watch mode reruns the planner. It plays any full or partial route in a visible window. Resize or maximize Edge to enlarge the game. If the planner finds no route, it leaves the level at spawn and prints the reason in the terminal. Omit `--step-through` to move on automatically after three seconds. Watch mode saves results only when you pass `--output`.
 
 ## Connect a controller
 

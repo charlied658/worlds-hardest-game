@@ -12,15 +12,20 @@ from time import perf_counter, sleep
 
 from PIL import Image
 
+from direct_start import level_exits
 from evolve import ACTIONS
 from plan_level1 import attempt, attempt_level_two
 from reactive import DIRECTIONS
-from training_env import FPS, HEIGHT, ROOT, WIDTH, RuffleEnv, sync_playwright
+from training_env import FPS, HEIGHT, ROOT, WIDTH, RuffleEnv, game_page, sync_playwright
 
 
 TILE = 25
 STRIDE = 3
-STEP = 3
+STEP = 2
+HAZARD_PADDING = 14
+PLANNER_DIRECTIONS = (*DIRECTIONS, (-1, -1), (1, -1), (-1, 1), (1, 1))
+PLANNER_KEYS = (*ACTIONS, ("ArrowLeft", "ArrowUp"), ("ArrowRight", "ArrowUp"),
+                ("ArrowLeft", "ArrowDown"), ("ArrowRight", "ArrowDown"))
 GREEN = (181, 254, 180)
 FLOOR_COLORS = {GREEN, (230, 230, 255), (247, 247, 255), (235, 225, 251), (252, 233, 233)}
 CAPTURE = """() => {
@@ -83,7 +88,7 @@ def components(points):
         yield group
 
 
-def layout(image, origin):
+def layout(image, origin, exit_center):
     floor_tiles = set()
     green_tiles = set()
     for row in range(1, HEIGHT // TILE - 1):
@@ -107,13 +112,14 @@ def layout(image, origin):
 
     origin_x, origin_y = origin
     spawn_tile = (int(origin_x // TILE), int(origin_y // TILE))
+    # The player and wall outline can obscure most of a one-tile starting zone.
+    floor_tiles.add(spawn_tile)
+    green_tiles.add(spawn_tile)
     zones = list(components(green_tiles))
-    other_zones = [zone for zone in zones if spawn_tile not in zone]
-    if not other_zones and not pellets:
-        return set(), pellets, set()
-    # If there are several green regions, use the farthest one as the exit candidate.
-    target_zone = max(other_zones or zones, default=[], key=lambda zone: max(
-        abs(column - spawn_tile[0]) + abs(row - spawn_tile[1]) for column, row in zone))
+    exit_x, exit_y = exit_center
+    target_zone = min(zones, key=lambda zone: min(
+        abs((column + 0.5) * TILE - exit_x) + abs((row + 0.5) * TILE - exit_y)
+        for column, row in zone))
     floor_positions = set()
     exit_positions = set()
     for gy in range(ceil((26 - origin_y) / STRIDE), floor((373 - origin_y) / STRIDE) + 1):
@@ -148,24 +154,52 @@ def record_hazards(env, origin, ticks):
             blocked = set()
             for left, top, right, bottom in frames[frame_index][1]:
                 # Include the enemy outline, the player's extent, and the sampling margin.
-                for y in range(ceil((top - 12 - origin_y) / STRIDE),
-                               floor((bottom + 12 - origin_y) / STRIDE) + 1):
-                    for x in range(ceil((left - 12 - origin_x) / STRIDE),
-                                   floor((right + 12 - origin_x) / STRIDE) + 1):
+                for y in range(ceil((top - HAZARD_PADDING - origin_y) / STRIDE),
+                               floor((bottom + HAZARD_PADDING - origin_y) / STRIDE) + 1):
+                    for x in range(ceil((left - HAZARD_PADDING - origin_x) / STRIDE),
+                                   floor((right + HAZARD_PADDING - origin_x) / STRIDE) + 1):
                         blocked.add((x, y))
         timeline.append(blocked)
     return timeline
 
 
-def search(start, targets, tiles, timeline, limit=35_000):
-    if not targets:
-        return None
-    min_x, max_x = min(x for x, _ in targets), max(x for x, _ in targets)
-    min_y, max_y = min(y for _, y in targets), max(y for _, y in targets)
+def floor_graph(tiles):
+    graph = {}
+    for x, y in tiles:
+        if x % STEP or y % STEP:
+            continue
+        edges = []
+        for action, (dx, dy) in enumerate(PLANNER_DIRECTIONS):
+            points = tuple((x + dx * offset, y + dy * offset)
+                           for offset in range(1, STEP + 1))
+            if not all(point in tiles for point in points):
+                continue
+            if dx and dy and not all(
+                (px - dx, py) in tiles and (px, py - dy) in tiles for px, py in points
+            ):
+                continue
+            edges.append((action, points))
+        graph[x, y] = edges
+    return graph
 
-    def distance(x, y):
-        return max(0, min_x - x, x - max_x) + max(0, min_y - y, y - max_y)
 
+def search(start, targets, graph, timeline, limit=80_000):
+    # A reverse search through the static floor gives a wall-aware distance bound.
+    distance = dict.fromkeys(targets & graph.keys(), 0)
+    if not distance:
+        return None, "target has no cell on the movement grid"
+    frontier = deque(distance)
+    while frontier:
+        position = frontier.popleft()
+        for _, points in graph[position]:
+            neighbor = points[-1]
+            if neighbor not in distance:
+                distance[neighbor] = distance[position] + STEP
+                frontier.append(neighbor)
+    if start[:2] not in distance:
+        return None, "inferred walls disconnect the target even without enemies"
+    if start[2] + distance[start[:2]] >= len(timeline):
+        return None, "shortest wall-only route exceeds the remaining forecast"
     order = count()
     queue = [(0, next(order), start)]
     parents = {start: None}
@@ -180,43 +214,43 @@ def search(start, targets, tiles, timeline, limit=35_000):
             while parents[state] is not None:
                 state, action = parents[state]
                 actions.appendleft(action)
-            return end, list(actions)
-        if tick + STEP >= len(timeline):
-            continue
-        for action, (dx, dy) in enumerate(DIRECTIONS):
-            next_state = (x + dx * STEP, y + dy * STEP, tick + STEP)
+            return (end, list(actions)), None
+        for action, points in graph[x, y]:
+            end = points[-1]
+            arrival = tick + STEP
+            if end not in distance or arrival + distance[end] >= len(timeline):
+                continue
+            next_state = (*end, arrival)
             if next_state in parents:
                 continue
-            for offset in range(1, STEP + 1):
-                point = (x + dx * offset, y + dy * offset)
-                if point not in tiles or point in timeline[tick + offset]:
-                    break
-            else:
+            if all(point not in timeline[tick + offset] for offset, point in enumerate(points, 1)):
                 parents[next_state] = (state, action)
-                heappush(queue, (next_state[2] + distance(*next_state[:2]), next(order), next_state))
-    return None
+                heappush(queue, (arrival + distance[end], next(order), next_state))
+    reason = ("search reached its state limit" if queue
+              else "enemy clearance blocks all explored routes within the forecast")
+    return None, reason
 
 
 def plan(origin, tiles, pellets, exits, timeline):
+    graph = floor_graph(tiles)
     state = (0, 0, 0)
     actions = []
-    remaining = list(pellets)
+    remaining = {
+        pellet: {(x, y) for x, y in graph if abs(origin[0] + x * STRIDE - pellet[0]) <= 7
+                 and abs(origin[1] + y * STRIDE - pellet[1]) <= 7}
+        for pellet in pellets
+    }
     while remaining:
-        # Limit the search to the nearest pending pellet to keep the batch bounded.
-        pellet = min(remaining, key=lambda point: abs(point[0] - origin[0] - state[0] * STRIDE)
-                     + abs(point[1] - origin[1] - state[1] * STRIDE))
-        px, py = pellet
-        targets = {(x, y) for x, y in tiles if abs(origin[0] + x * STRIDE - px) <= 7
-                   and abs(origin[1] + y * STRIDE - py) <= 7}
-        segment = search(state, targets, tiles, timeline)
+        targets = set().union(*remaining.values())
+        segment, reason = search(state, targets, graph, timeline)
         if segment is None:
-            return actions, "pellet route unavailable"
+            return actions, f"pellet route unavailable: {reason}"
         state, moves = segment
         actions.extend(moves)
-        remaining.remove(pellet)
-    segment = search(state, exits, tiles, timeline)
+        remaining = {pellet: cells for pellet, cells in remaining.items() if state[:2] not in cells}
+    segment, reason = search(state, exits, graph, timeline)
     if segment is None:
-        return actions, "exit route unavailable"
+        return actions, f"exit route unavailable: {reason}"
     return actions + segment[1], None
 
 
@@ -225,9 +259,12 @@ def attempt_screen_planner(env, level, ticks, *, watch=False):
         # Match the warm reset phase used for the replay when starting with a subset.
         env.reset(level)
     start = env.reset(level)
+    exit_center = level_exits((ROOT / "WHGOriginal.swf").read_bytes()).get(level)
+    if exit_center is None:
+        return {"status": "unmodeled", "reason": "no named exit marker in the SWF"}
     with Image.open(BytesIO(env.screenshot())) as image:
-        tiles, pellets, exits = layout(image.convert("RGB"), start.player)
-    details = {"pellets_visible": len(pellets), "moves": 0}
+        tiles, pellets, exits = layout(image.convert("RGB"), start.player, exit_center)
+    details = {"pellets_visible": len(pellets), "moves": 0, "exit": exit_center}
     if (0, 0) not in tiles or not exits:
         return {**details, "status": "unmodeled", "reason": "could not infer spawn floor or exit"}
     if watch:
@@ -255,7 +292,7 @@ def attempt_screen_planner(env, level, ticks, *, watch=False):
 
     status = "partial route" if reason else "exit not confirmed"
     for index, action in enumerate(actions, 1):
-        observation = step(ACTIONS[action])
+        observation = step(PLANNER_KEYS[action])
         details["moves"] = index
         if observation.level_marker is not None and observation.level_marker != initial.level_marker:
             status = "cleared"
@@ -264,7 +301,9 @@ def attempt_screen_planner(env, level, ticks, *, watch=False):
             status = "died"
             break
     if status not in {"cleared", "died"}:
-        for _ in range(15):
+        # The player can disappear during the transition to the next level.
+        settle_ticks = 90 if observation.player is None else 30
+        for _ in range(settle_ticks // STEP):
             observation = step()
             if observation.level_marker is not None and observation.level_marker != initial.level_marker:
                 status = "cleared"
@@ -281,7 +320,7 @@ def main():
     selection.add_argument("--levels", type=int, nargs="+")
     selection.add_argument("--failures-from", type=Path,
                            help="Select non-clears from a previous benchmark JSON.")
-    parser.add_argument("--forecast-ticks", type=int, default=300)
+    parser.add_argument("--forecast-ticks", type=int, default=540)
     parser.add_argument("--output", type=Path, help="Save results to this file.")
     parser.add_argument("--watch", action="store_true", help="Show each attempt in a visible window.")
     parser.add_argument("--step-through", action="store_true",
@@ -301,7 +340,7 @@ def main():
             return
     if (any(not isinstance(level, int) or not 1 <= level <= 30 for level in levels)
             or args.forecast_ticks < STEP):
-        parser.error("Use levels 1–30 and at least three forecast ticks.")
+        parser.error(f"Use levels 1–30 and at least {STEP} forecast ticks.")
     output = args.output
     if output is None and not args.watch and args.failures_from is None:
         output = ROOT / "level_benchmark.json"
@@ -309,8 +348,9 @@ def main():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(channel="msedge", headless=not args.watch, timeout=15_000)
         try:
-            page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT}, service_workers="block")
-            env = RuffleEnv(page, ROOT / "ruffle-web" / "package", direct_reset=True, track_enemies=True)
+            page = game_page(browser, watch=args.watch)
+            env = RuffleEnv(page, ROOT / "ruffle-web" / "package", direct_reset=True,
+                            track_enemies=True, fit_window=args.watch)
             for index, level in enumerate(levels, 1):
                 print(f"Testing level {level}/30", flush=True)
                 if level <= 2:

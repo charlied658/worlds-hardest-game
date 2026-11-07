@@ -9,7 +9,7 @@ from math import dist
 from pathlib import Path
 from time import perf_counter, sleep
 
-from training_env import FPS, HEIGHT, KEYS, ROOT, WIDTH, RuffleEnv, sync_playwright, watch_replay
+from training_env import FPS, KEYS, ROOT, RuffleEnv, game_page, sync_playwright, watch_replay
 
 
 ACTIONS = ((), *((key,) for key in KEYS))
@@ -61,12 +61,12 @@ def evaluate(env, moves, *, policy=None, decisions=0, decision_ticks=ACTION_TICK
         else:
             observation = env.step(ACTIONS[action], ticks=ticks)
         replay.append((action, ticks))
+        if observation.level_marker is not None and observation.level_marker != initial.level_marker:
+            return Result(best_progress, tuple(replay), False, True)
+        if observation.death_marker is not None and observation.death_marker != initial.death_marker:
+            return Result(best_progress, tuple(replay), True, False)
         if observation.player is None:
             continue
-        if observation.level_marker != initial.level_marker:
-            return Result(best_progress, tuple(replay), False, True)
-        if observation.death_marker != initial.death_marker:
-            return Result(best_progress, tuple(replay), True, False)
 
         while waypoint < len(WAYPOINTS):
             remaining = dist(observation.player, WAYPOINTS[waypoint])
@@ -224,14 +224,14 @@ def main():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(channel="msedge", headless=replay is None, timeout=15_000)
         try:
-            page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT}, service_workers="block")
+            page = game_page(browser, watch=replay is not None)
             if replay is None:
                 env = RuffleEnv(page, args.ruffle_dir, direct_reset=True)
                 evolve(env, args)
                 print(f"Best replay saved to {args.output.resolve()}", flush=True)
             else:
                 env = RuffleEnv(page, args.ruffle_dir, direct_reset=replay["direct_reset"],
-                                level=replay["level"])
+                                level=replay["level"], fit_window=True)
                 watch_replay(env, replay["actions"])
         finally:
             browser.close()

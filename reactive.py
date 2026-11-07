@@ -9,7 +9,7 @@ from statistics import mean
 from time import sleep
 
 from evolve import ACTIONS, ACTION_TICKS, OPENING, WAYPOINTS, evaluate, schedule
-from training_env import HEIGHT, ROOT, WIDTH, RuffleEnv, sync_playwright
+from training_env import ROOT, RuffleEnv, game_page, sync_playwright
 
 
 TRAIN_DELAYS = (0, 12, 24)
@@ -142,8 +142,9 @@ def main():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(channel="msedge", headless=model is None, timeout=15_000)
         try:
-            page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT}, service_workers="block")
-            env = RuffleEnv(page, args.ruffle_dir, direct_reset=True, track_enemies=True)
+            page = game_page(browser, watch=model is not None)
+            env = RuffleEnv(page, args.ruffle_dir, direct_reset=True, track_enemies=True,
+                            fit_window=model is not None)
             if model:
                 result = reactive_attempt(env, model["weights"], args.delay, model["decisions"], pace=True)
                 report("Live policy", (args.delay,), (result,))

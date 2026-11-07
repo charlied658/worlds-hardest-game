@@ -1,6 +1,7 @@
 """Fixed-clock replay of the original SWF in Ruffle Web."""
 
 import argparse
+from base64 import b64decode
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from hashlib import blake2b
@@ -134,14 +135,30 @@ def image_signature(image):
     return blake2b(image.tobytes(), digest_size=8).hexdigest()
 
 
+def is_level_tip(screenshot):
+    # Interstitial tips retain the HUD and show a red GO button on a gradient.
+    upper = screenshot.getpixel((0, 27))[0]
+    middle = screenshot.getpixel((0, 200))[0]
+    if middle - upper < 12:
+        return False
+    colors = screenshot.crop((249, 298, 302, 327)).convert("RGB").getcolors(53 * 29)
+    return any(red >= 230 and green <= 60 and blue <= 60 for _, (red, green, blue) in colors)
+
+
+def game_page(browser, *, watch=False):
+    viewport = {"no_viewport": True} if watch else {"viewport": {"width": WIDTH, "height": HEIGHT}}
+    return browser.new_page(**viewport, service_workers="block")
+
+
 class RuffleEnv:
     def __init__(self, page, ruffle_dir, boot_clicks=None, *, direct_reset=False, level=1,
-                 track_enemies=False):
+                 track_enemies=False, fit_window=False):
         self.page = page
         self.boot_clicks = level_clicks(level) if boot_clicks is None else boot_clicks
         self.direct_reset = direct_reset
         self.level = level
         self.track_enemies = track_enemies
+        self.fit_window = fit_window
         self.swf = (ROOT / "WHGOriginal.swf").read_bytes() if direct_reset else None
         self.assets = {"/game.swf": ROOT / "WHGOriginal.swf"}
         self.assets.update(
@@ -194,6 +211,20 @@ class RuffleEnv:
                 self.page.clock.run_for(16 - phase)
         else:
             self.page.goto(ORIGIN, wait_until="domcontentloaded", timeout=15_000)
+            if self.fit_window:
+                self.page.add_style_tag(content="""
+                    ruffle-player {
+                        transform-origin: top left;
+                        transform: scale(var(--stage-scale, 1));
+                    }
+                    body { overflow: hidden; }
+                """)
+                self.page.evaluate("""([width, height]) => {
+                    const fit = () => document.documentElement.style.setProperty(
+                        "--stage-scale", Math.min(innerWidth / width, innerHeight / height));
+                    addEventListener("resize", fit);
+                    fit();
+                }""", [WIDTH, HEIGHT])
         self.page.evaluate("path => { void window.startMovie(path); }", path)
         self.page.wait_for_function(
             "window.movieReady || window.movieError", polling=25, timeout=15_000
@@ -204,13 +235,20 @@ class RuffleEnv:
         self.tick = 0
         self._advance(12)
         if self.direct_reset:
-            self.page.mouse.click(5, HEIGHT - 5)  # Focus the stage outside the playfield.
+            self._click(5, HEIGHT - 5)  # Focus the stage outside the playfield.
         else:
             clicks = self.boot_clicks if level is None else level_clicks(level)
             for x, y, ticks in clicks:
-                self.page.mouse.click(x, y)
+                self._click(x, y)
                 self._advance(ticks)
         self.tick = 0
+
+    def _click(self, x, y):
+        if self.fit_window:
+            bounds = self.page.locator("ruffle-player").bounding_box()
+            x = bounds["x"] + x * bounds["width"] / WIDTH
+            y = bounds["y"] + y * bounds["height"] / HEIGHT
+        self.page.mouse.click(x, y)
 
     def reset(self, level=None):
         self.boot(level)
@@ -235,6 +273,11 @@ class RuffleEnv:
         return self.observe() if observe else None
 
     def screenshot(self):
+        if self.fit_window:
+            png = self.page.locator("ruffle-player canvas").evaluate(
+                "canvas => canvas.toDataURL('image/png').split(',')[1]"
+            )
+            return b64decode(png)
         return self.page.screenshot(timeout=5_000)
 
     def observe(self):
@@ -246,10 +289,11 @@ class RuffleEnv:
             top = 27
             position = player_center(screenshot, (0, top, WIDTH, HEIGHT - 27))
             signature = image_signature(screenshot)
-            if position is not None:
-                position = (position[0], position[1] + top)
+            if position is not None or is_level_tip(screenshot):
                 level_marker = image_signature(screenshot.crop((225, 0, 325, top)))
                 death_marker = image_signature(screenshot.crop((440, 0, WIDTH, top)))
+            if position is not None:
+                position = (position[0], position[1] + top)
                 if self.track_enemies and self.active_level == 1:
                     enemies = level_one_enemies(screenshot)
                 elif self.track_enemies and self.active_level == 2:
@@ -325,10 +369,9 @@ def main():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(channel="msedge", headless=not args.watch, timeout=15_000)
         try:
-            page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT},
-                                    service_workers="block")
+            page = game_page(browser, watch=args.watch)
             env = RuffleEnv(page, args.ruffle_dir, args.click,
-                            direct_reset=args.direct_reset, level=args.level)
+                            direct_reset=args.direct_reset, level=args.level, fit_window=args.watch)
             if args.inspect:
                 env.boot()
                 args.inspect.write_bytes(env.screenshot())

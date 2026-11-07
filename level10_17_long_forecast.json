@@ -1,0 +1,24 @@
+[
+  {
+    "level": 10,
+    "pellets_visible": 0,
+    "moves": 0,
+    "exit": [
+      337.5,
+      100.0
+    ],
+    "status": "no route",
+    "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+  },
+  {
+    "level": 17,
+    "pellets_visible": 0,
+    "moves": 0,
+    "exit": [
+      362.5,
+      237.5
+    ],
+    "status": "no route",
+    "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+  }
+]

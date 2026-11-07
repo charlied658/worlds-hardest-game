@@ -1,0 +1,13 @@
+[
+  {
+    "level": 5,
+    "pellets_visible": 0,
+    "moves": 385,
+    "exit": [
+      337.5,
+      200.0
+    ],
+    "status": "cleared",
+    "reason": null
+  }
+]

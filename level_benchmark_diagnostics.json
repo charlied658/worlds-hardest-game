@@ -1,0 +1,90 @@
+[
+  {
+    "level": 9,
+    "pellets_visible": 1,
+    "moves": 193,
+    "exit": [
+      475.0,
+      200.0
+    ],
+    "status": "cleared",
+    "reason": null
+  },
+  {
+    "level": 19,
+    "pellets_visible": 0,
+    "moves": 56,
+    "exit": [
+      450.0,
+      200.0
+    ],
+    "status": "cleared",
+    "reason": null
+  },
+  {
+    "level": 24,
+    "pellets_visible": 0,
+    "moves": 110,
+    "exit": [
+      500.0,
+      100.0
+    ],
+    "status": "cleared",
+    "reason": null
+  },
+  {
+    "level": 28,
+    "pellets_visible": 0,
+    "moves": 240,
+    "exit": [
+      75.0,
+      75.0
+    ],
+    "status": "cleared",
+    "reason": null
+  },
+  {
+    "level": 27,
+    "pellets_visible": 1,
+    "moves": 206,
+    "exit": [
+      50.0,
+      150.0
+    ],
+    "status": "cleared",
+    "reason": null
+  },
+  {
+    "level": 5,
+    "pellets_visible": 0,
+    "moves": 0,
+    "exit": [
+      337.5,
+      200.0
+    ],
+    "status": "no route",
+    "reason": "exit route unavailable: shortest wall-only route exceeds the remaining forecast"
+  },
+  {
+    "level": 10,
+    "pellets_visible": 0,
+    "moves": 0,
+    "exit": [
+      337.5,
+      100.0
+    ],
+    "status": "no route",
+    "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+  },
+  {
+    "level": 17,
+    "pellets_visible": 0,
+    "moves": 0,
+    "exit": [
+      362.5,
+      237.5
+    ],
+    "status": "no route",
+    "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+  }
+]

@@ -9,7 +9,7 @@ from time import sleep
 
 from evolve import ACTION_TICKS, OPENING, evaluate
 from reactive import DIRECTIONS, TEST_DELAYS, report
-from training_env import HEIGHT, ROOT, WIDTH, RuffleEnv, sync_playwright
+from training_env import ROOT, RuffleEnv, game_page, sync_playwright
 
 
 DECISION_TICKS = 3
@@ -198,9 +198,9 @@ def main():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(channel="msedge", headless=not args.watch, timeout=15_000)
         try:
-            page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT}, service_workers="block")
+            page = game_page(browser, watch=args.watch)
             env = RuffleEnv(page, ROOT / "ruffle-web" / "package", direct_reset=True,
-                            track_enemies=True, level=args.level)
+                            track_enemies=True, level=args.level, fit_window=args.watch)
             if args.level == 1:
                 results = [attempt(env, delay, pace=args.watch) for delay in args.delay]
                 report("Route planner", args.delay, results)
