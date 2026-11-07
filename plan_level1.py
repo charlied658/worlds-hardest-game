@@ -9,7 +9,7 @@ from time import sleep
 
 from evolve import ACTION_TICKS, OPENING, evaluate
 from reactive import DIRECTIONS, TEST_DELAYS, report
-from training_env import ROOT, RuffleEnv, game_page, sync_playwright
+from training_env import ROOT, RuffleEnv, add_browser_argument, game_page, launch_browser, sync_playwright
 
 
 DECISION_TICKS = 3
@@ -192,11 +192,12 @@ def main():
     parser.add_argument("--watch", action="store_true")
     parser.add_argument("--level", type=int, choices=(1, 2), default=1)
     parser.add_argument("--delay", type=int, nargs="+", default=list(TEST_DELAYS))
+    add_browser_argument(parser)
     args = parser.parse_args()
     if any(delay < 0 for delay in args.delay):
         parser.error("Delays must be nonnegative.")
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(channel="msedge", headless=not args.watch, timeout=15_000)
+        browser = launch_browser(playwright, browser=args.browser, headless=not args.watch)
         try:
             page = game_page(browser, watch=args.watch)
             env = RuffleEnv(page, ROOT / "ruffle-web" / "package", direct_reset=True,

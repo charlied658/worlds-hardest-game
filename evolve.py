@@ -9,7 +9,7 @@ from math import dist
 from pathlib import Path
 from time import perf_counter, sleep
 
-from training_env import FPS, KEYS, ROOT, RuffleEnv, game_page, sync_playwright, watch_replay
+from training_env import FPS, KEYS, ROOT, RuffleEnv, add_browser_argument, game_page, launch_browser, sync_playwright, watch_replay
 
 
 ACTIONS = ((), *((key,) for key in KEYS))
@@ -210,6 +210,7 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT / "best_replay.json")
     parser.add_argument("--watch", type=Path, help="Watch a saved replay instead of evolving.")
     parser.add_argument("--ruffle-dir", type=Path, default=ROOT / "ruffle-web" / "package")
+    add_browser_argument(parser)
     args = parser.parse_args()
     if args.population < 3 or min(args.generations, args.actions) < 1:
         parser.error("Use a population of at least 3 and positive generations and actions.")
@@ -222,7 +223,7 @@ def main():
     replay = json.loads(args.watch.read_text(encoding="utf-8")) if args.watch else None
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(channel="msedge", headless=replay is None, timeout=15_000)
+        browser = launch_browser(playwright, browser=args.browser, headless=replay is None)
         try:
             page = game_page(browser, watch=replay is not None)
             if replay is None:

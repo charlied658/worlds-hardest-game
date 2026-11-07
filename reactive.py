@@ -9,7 +9,7 @@ from statistics import mean
 from time import sleep
 
 from evolve import ACTIONS, ACTION_TICKS, OPENING, WAYPOINTS, evaluate, schedule
-from training_env import ROOT, RuffleEnv, game_page, sync_playwright
+from training_env import ROOT, RuffleEnv, add_browser_argument, game_page, launch_browser, sync_playwright
 
 
 TRAIN_DELAYS = (0, 12, 24)
@@ -129,6 +129,7 @@ def main():
     parser.add_argument("--delay", type=int, default=6, help="Starting delay in ticks when watching.")
     parser.add_argument("--baseline", type=Path, help="Compare a saved level 1 replay on held-out delays.")
     parser.add_argument("--ruffle-dir", type=Path, default=ROOT / "ruffle-web" / "package")
+    add_browser_argument(parser)
     args = parser.parse_args()
     if args.population < 3 or min(args.generations, args.decisions) < 1 or args.delay < 0:
         parser.error("Use at least three policies, positive generations and decisions, and a nonnegative delay.")
@@ -140,7 +141,7 @@ def main():
         parser.error("The baseline must be a direct-start level 1 replay.")
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(channel="msedge", headless=model is None, timeout=15_000)
+        browser = launch_browser(playwright, browser=args.browser, headless=model is None)
         try:
             page = game_page(browser, watch=model is not None)
             env = RuffleEnv(page, args.ruffle_dir, direct_reset=True, track_enemies=True,

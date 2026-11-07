@@ -1,22 +1,149 @@
 # Training with the original SWF
 
-The environment runs `WHGOriginal.swf` in a hidden Microsoft Edge session using Ruffle Web. It advances a virtual browser clock at the game's native 30 fps and lets the original SWF handle movement, collisions, and level progression.
+The environment runs `WHGOriginal.swf` in a hidden Chromium, Google Chrome, or Microsoft Edge session using Ruffle Web. It advances a virtual browser clock at the game's native 30 fps and lets the original SWF handle movement, collisions, and level progression.
 
-## Run the benchmark
+## First-time setup (macOS and Windows)
 
-From this folder, with Python 3.10+ and Microsoft Edge installed:
+Use Python 3.10+ and run commands from the project folder. The original
+`WHGOriginal.swf` must remain in that folder. Use a virtual environment if desired,
+and install dependencies into the same Python interpreter used to run the scripts.
+
+On macOS:
+
+```sh
+python3 -m pip install -r requirements-training.txt
+python3 -m playwright install chromium
+```
+
+On Windows (PowerShell):
 
 ```powershell
 python -m pip install -r requirements-training.txt
+python -m playwright install chromium
+```
+
+Examples below use `python`; on macOS substitute `python3` if that is your Python
+command. Playwright's Chromium installation is separate from installing the Python
+package. If you only want to use an already installed Chrome or Edge, you can skip
+`playwright install chromium` and pass the corresponding `--browser` option.
+
+### Install Ruffle Web
+
+The project needs Ruffle's **self-hosted web package**, not the desktop application
+or browser extension. You do not need to open the SWF manually: the scripts serve
+and load it automatically, without a separate web server.
+
+The build tested here is `@ruffle-rs/ruffle` **0.7.1**. Use the same build on machines
+whose results you want to compare. That version is available as a
+[package archive](https://registry.npmjs.org/@ruffle-rs/ruffle/-/ruffle-0.7.1.tgz).
+Alternatively, obtain a self-hosted build from [Ruffle downloads](https://ruffle.rs/downloads.html);
+a different build may change rendering or gameplay behavior and needs validation.
+
+Extract the archive and place the files in this layout, relative to the project
+folder (the archive may already contain the `package` directory):
+
+```text
+worlds-hardest-game/
+    WHGOriginal.swf
+    training_env.py
+    benchmark_levels.py
+    ruffle-web/
+        package/
+            ruffle.js
+            core.ruffle.<build-hash>.js
+            <build-hash>.wasm
+            ...other files from the same Ruffle package...
+```
+
+`ruffle.js` must be directly inside `ruffle-web/package`, not in another nested
+`package` folder. Keep all accompanying JavaScript and WASM files together; do not
+mix files from different builds. `ruffle-web/` is ignored by Git, so each teammate
+must install it locally.
+
+`training_env.py`, `evolve.py`, and `reactive.py` also support a custom location:
+
+```sh
+python training_env.py --browser chrome --ruffle-dir "/path/to/ruffle-files" --runs 3
+```
+
+On Windows, use a path such as `"C:\path\to\ruffle-files"`. The folder must contain
+`ruffle.js`. `plan_level1.py` and `benchmark_levels.py` currently require the default
+`ruffle-web/package` location.
+
+### Choose a browser
+
+All five browser-based commands (`training_env.py`, `evolve.py`, `reactive.py`,
+`plan_level1.py`, and `benchmark_levels.py`) accept `--browser chromium|chrome|edge`.
+The default is now Playwright's bundled **Chromium**; older versions of this project
+always launched Edge. Chrome and Edge must already be installed when selected.
+
+```sh
+python training_env.py --browser chrome --runs 3
+python evolve.py --browser chrome --watch best_replay.json
+python benchmark_levels.py --browser edge --watch
+```
+
+Each run prints the browser name and version. A missing browser produces installation
+guidance; the program does not silently choose a different browser. On your existing
+Windows setup, pass `--browser edge` to keep using Edge without installing Chromium.
+
+## Verify the setup and run the benchmark
+
+Start with a short reset/replay test, then check a subset of the level benchmark:
+
+```sh
+python training_env.py --runs 3
+python training_env.py --direct-reset --runs 3
+python benchmark_levels.py --levels 1 2 13 --output local-check.json
+python benchmark_levels.py --watch --levels 1 2 13
+```
+
+Append `--browser chrome` or `--browser edge` to each command as appropriate.
+`local-check.json` is a separate local result file so this check does not overwrite
+the committed `level_benchmark.json`. Watch mode does not save results unless you
+supply `--output`.
+
+Then run the full level benchmark, or a longer throughput test:
+
+```sh
+python benchmark_levels.py --watch
 python training_env.py --runs 10
 python training_env.py --level 30 --runs 3
 ```
 
-The local Ruffle Web package is in `ruffle-web/package` (version 0.7.1). If that folder is missing, download the [self-hosted Ruffle build](https://ruffle.rs/downloads.html), extract it, and pass the folder containing `ruffle.js` and its accompanying JavaScript and WASM files:
+`benchmark_levels.py` uses built-in route planners and does **not** load the output
+of `evolve.py` or `reactive.py`. No training step is required before benchmarking.
+Those training commands are separate experiments described below.
 
-```powershell
-python training_env.py --ruffle-dir 'C:\path\to\ruffle' --runs 10
-```
+### Troubleshooting and comparing machines
+
+- **Missing `ruffle-web/package`:** install the self-hosted web files in the layout
+  above. Installing the desktop app alone is insufficient.
+- **Missing browser executable:** run `python -m playwright install chromium`, or
+  select an installed browser with `--browser chrome` or `--browser edge`.
+- **Reset did not reach gameplay:** save the startup screen with
+  `python training_env.py --browser chrome --inspect training-preview.png`.
+  For a direct-start failure, include `--direct-reset` as well. Verify the Ruffle
+  build and that the window shows the actual game.
+- **Watch mode on Retina/high-DPI displays:** the game now renders at a fixed
+  550 × 400 logical resolution and pixel density of 1. The window scales its visual
+  presentation, and screenshots and obstacle forecasting use logical coordinates.
+  Earlier code could fail player detection or predict obstacles incorrectly on a
+  Retina display. These fixes also apply to Windows display scaling.
+
+On the tested Mac with Chrome 156.0.8078.80 and Ruffle 0.7.1, levels 1, 2, and 13
+cleared in both visible and headless runs. Levels 1 and 2 produced identical action
+sequences between modes; level 13 took 31 moves in each. Resizing the window retained
+the same canvas size and spawn coordinates. This is a subset check, not validation
+of every level or a guarantee of identical results on other systems.
+
+For comparisons, use the same Ruffle build, Python dependencies, browser/version,
+reset mode, command options, and training seeds. Matching input sequences and game
+outcomes are more useful than assuming screenshots or wall-clock throughput will
+match across operating systems. Browser and OS details are currently printed or
+recorded manually, not automatically included in benchmark JSON. Existing timing
+figures below came from the original Edge setup and have not been revalidated on
+other browsers.
 
 The benchmark reports trials per second, average reset and replay times, and the number of distinct start/end screen pairs. Throughput includes resets and screenshots. The first trial includes browser-side Ruffle initialization. Matching frame pairs indicate repeatability for this replay.
 
@@ -109,7 +236,9 @@ To watch the failed levels one at a time:
 python benchmark_levels.py --watch --step-through --failures-from level_benchmark.json
 ```
 
-Watch mode reruns the planner. It plays any full or partial route in a visible window. Resize or maximize Edge to enlarge the game. If the planner finds no route, it leaves the level at spawn and prints the reason in the terminal. Omit `--step-through` to move on automatically after three seconds. Watch mode saves results only when you pass `--output`.
+The game renders at 550 × 400 with a logical pixel density of 1, including on Retina and other high-DPI displays. Watch mode enlarges that surface with CSS; resizing the window does not change simulation resolution or controller coordinates. Both screenshots and obstacle forecasting use the same logical coordinate system.
+
+Watch mode reruns the planner. It plays any full or partial route in a visible window. Resize or maximize the browser window to enlarge the game. If the planner finds no route, it leaves the level at spawn and prints the reason in the terminal. Omit `--step-through` to move on automatically after three seconds. Watch mode saves results only when you pass `--output`.
 
 ## Connect a controller
 

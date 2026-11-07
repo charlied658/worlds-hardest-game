@@ -2,3 +2,4 @@ __pycache__/
 .training-deps/
 ruffle-web/
 training-preview.png
+.DS_STORE

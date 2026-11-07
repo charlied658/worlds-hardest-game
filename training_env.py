@@ -11,7 +11,7 @@ from time import perf_counter, sleep
 from urllib.parse import urlsplit
 
 from PIL import Image, ImageChops
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import Error as PlaywrightError, sync_playwright
 
 from direct_start import start_at_level
 from ruffle_smoke_test import player_center
@@ -145,9 +145,44 @@ def is_level_tip(screenshot):
     return any(red >= 230 and green <= 60 and blue <= 60 for _, (red, green, blue) in colors)
 
 
+def add_browser_argument(parser):
+    parser.add_argument(
+        "--browser", choices=("chromium", "chrome", "edge"), default="chromium",
+        help="Browser to launch (default: chromium). Chrome and Edge must be installed.",
+    )
+
+
+def launch_browser(playwright, *, browser="chromium", headless=True):
+    """Launch the selected Chromium browser without silently changing engines."""
+    channels = {"chromium": None, "chrome": "chrome", "edge": "msedge"}
+    options = {"headless": headless, "timeout": 15_000}
+    if channels[browser] is not None:
+        options["channel"] = channels[browser]
+    try:
+        launched = playwright.chromium.launch(**options)
+    except PlaywrightError as exc:
+        message = str(exc)
+        if "executable doesn't exist" in message.lower() or "distribution" in message.lower() and "not found" in message.lower():
+            hint = (
+                "Install it with: python -m playwright install chromium"
+                if browser == "chromium" else
+                f"Install {'Google Chrome' if browser == 'chrome' else 'Microsoft Edge'}, "
+                "or use --browser chromium after running: python -m playwright install chromium"
+            )
+            raise SystemExit(f"Browser '{browser}' is not installed. {hint}") from None
+        raise
+    print(f"Browser: {browser} {launched.version}", flush=True)
+    return launched
+
+
 def game_page(browser, *, watch=False):
     viewport = {"no_viewport": True} if watch else {"viewport": {"width": WIDTH, "height": HEIGHT}}
-    return browser.new_page(**viewport, service_workers="block")
+    page = browser.new_page(**viewport, service_workers="block")
+    # Ruffle sizes its render buffer from devicePixelRatio. Keep the simulation
+    # at one pixel per SWF coordinate even in a resizable Retina watch window.
+    # CSS scaling below only changes presentation, never the render resolution.
+    page.add_init_script("Object.defineProperty(window, 'devicePixelRatio', {get: () => 1});")
+    return page
 
 
 class RuffleEnv:
@@ -277,7 +312,17 @@ class RuffleEnv:
             png = self.page.locator("ruffle-player canvas").evaluate(
                 "canvas => canvas.toDataURL('image/png').split(',')[1]"
             )
-            return b64decode(png)
+            # Retina and other high-DPI displays use a larger canvas backing
+            # buffer. Controllers always work in the SWF's logical coordinates,
+            # independent of display density or the watch window's CSS scale.
+            data = b64decode(png)
+            with Image.open(BytesIO(data)) as frame:
+                if frame.size == (WIDTH, HEIGHT):
+                    return data
+                normalized = frame.resize((WIDTH, HEIGHT), Image.Resampling.NEAREST)
+                output = BytesIO()
+                normalized.save(output, format="PNG")
+                return output.getvalue()
         return self.page.screenshot(timeout=5_000)
 
     def observe(self):
@@ -355,6 +400,7 @@ def main():
     output.add_argument("--watch", action="store_true", help="Watch one replay in a visible window.")
     parser.add_argument("--click", nargs=3, type=int, action="append", metavar=("X", "Y", "TICKS"),
                         help="Override startup clicks. Repeat to add more clicks.")
+    add_browser_argument(parser)
     args = parser.parse_args()
     if args.runs < 1:
         parser.error("--runs must be positive")
@@ -367,7 +413,7 @@ def main():
         parser.error("--click is only available for menu-based resets.")
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(channel="msedge", headless=not args.watch, timeout=15_000)
+        browser = launch_browser(playwright, browser=args.browser, headless=not args.watch)
         try:
             page = game_page(browser, watch=args.watch)
             env = RuffleEnv(page, args.ruffle_dir, args.click,

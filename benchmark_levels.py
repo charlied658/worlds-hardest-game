@@ -16,7 +16,7 @@ from direct_start import level_exits
 from evolve import ACTIONS
 from plan_level1 import attempt, attempt_level_two
 from reactive import DIRECTIONS
-from training_env import FPS, HEIGHT, ROOT, WIDTH, RuffleEnv, game_page, sync_playwright
+from training_env import FPS, HEIGHT, ROOT, WIDTH, RuffleEnv, add_browser_argument, game_page, launch_browser, sync_playwright
 
 
 TILE = 25
@@ -30,10 +30,16 @@ GREEN = (181, 254, 180)
 FLOOR_COLORS = {GREEN, (230, 230, 255), (247, 247, 255), (235, 225, 251), (252, 233, 233)}
 CAPTURE = """() => {
     const canvas = document.querySelector("ruffle-player").shadowRoot.querySelector("canvas");
-    const context = canvas.getContext("2d");
-    const width = canvas.width;
+    // Sample hazards in the same logical coordinates used by screenshots.
+    const logical = document.createElement("canvas");
+    logical.width = 550;
+    logical.height = 400;
+    const context = logical.getContext("2d", {willReadFrequently: true});
+    context.imageSmoothingEnabled = false;
+    const width = logical.width;
     const top = 26;
     function sample() {
+        context.drawImage(canvas, 0, 0, logical.width, logical.height);
         const pixels = context.getImageData(0, top, width, 348).data;
         const hits = new Set();
         for (let y = 0; y < 348; y += 2) {
@@ -325,6 +331,7 @@ def main():
     parser.add_argument("--watch", action="store_true", help="Show each attempt in a visible window.")
     parser.add_argument("--step-through", action="store_true",
                         help="In watch mode, wait for Enter between levels.")
+    add_browser_argument(parser)
     args = parser.parse_args()
     if args.step_through and not args.watch:
         parser.error("--step-through requires --watch.")
@@ -346,7 +353,7 @@ def main():
         output = ROOT / "level_benchmark.json"
     results = []
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(channel="msedge", headless=not args.watch, timeout=15_000)
+        browser = launch_browser(playwright, browser=args.browser, headless=not args.watch)
         try:
             page = game_page(browser, watch=args.watch)
             env = RuffleEnv(page, ROOT / "ruffle-web" / "package", direct_reset=True,
