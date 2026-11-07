@@ -85,9 +85,31 @@ The trainer saves the best weights as soon as they improve. Watch mode runs the 
 ```powershell
 python plan_level1.py
 python plan_level1.py --watch --delay 18
+python plan_level1.py --level 2
+python plan_level1.py --level 2 --watch --delay 18
 ```
 
 The planner estimates the enemies' current phase from two screenshots, predicts their bounces, and searches for a route through a hand-coded map of level 1. It checks the next move against live observations every three ticks. In the initial test, it cleared all three held-out starting delays in the original SWF. This is a hand-built baseline for comparison with the evolved controller.
+
+Level 2 uses the same search with a different map and a forecast for the twelve vertical enemy lanes. The search requires collecting the yellow pellet before reaching the exit. The terminal reports pellet collection and whether the game advanced to level 3.
+
+### Full level benchmark
+
+```powershell
+python benchmark_levels.py
+```
+
+The benchmark starts each level independently and saves its outcome in `level_benchmark.json`. Levels 1 and 2 use the tuned planners. For levels 3–30, the benchmark infers a tile map, pellets, and green zones from the screen, records enemy motion during an idle run, and tests the resulting plan in a fresh run. The default forecast covers 300 game ticks. Use `--levels 3 4` to run a subset and `--output other_results.json` to keep it separate.
+
+A clear requires the original game to show the next level. A death is a collision confirmed by the death counter. The other outcomes distinguish a missing route within the search budget, a partial route, an unconfirmed exit, or a layout the screen-based planner could not model. The final win screen would need a separate check for a level 30 clear.
+
+To watch the failed levels one at a time:
+
+```powershell
+python benchmark_levels.py --watch --step-through --failures-from level_benchmark.json
+```
+
+Watch mode reruns the planner. It plays any full or partial route in a visible window. If the planner finds no route, it leaves the level at spawn and prints the reason in the terminal. Omit `--step-through` to move on automatically after three seconds. Watch mode saves results only when you pass `--output`.
 
 ## Connect a controller
 

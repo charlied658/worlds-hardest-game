@@ -79,15 +79,20 @@ class Observation:
     level_marker: str | None
     death_marker: str | None
     enemies: tuple[tuple[float, float] | None, ...] = ()
+    pellet: tuple[float, float] | None = None
+
+
+def blue_mask(screenshot, bounds):
+    red, green, blue = screenshot.crop(bounds).convert("RGB").split()
+    low = [255 if value <= 55 else 0 for value in range(256)]
+    high = [255 if value >= 180 else 0 for value in range(256)]
+    return ImageChops.multiply(ImageChops.multiply(red.point(low), green.point(low)), blue.point(high))
 
 
 def level_one_enemies(screenshot):
     # Level 1 has one blue enemy in each of these four horizontal lanes.
     left, top = 150, 150
-    red, green, blue = screenshot.crop((left, top, 400, 250)).convert("RGB").split()
-    low = [255 if value <= 55 else 0 for value in range(256)]
-    high = [255 if value >= 180 else 0 for value in range(256)]
-    mask = ImageChops.multiply(ImageChops.multiply(red.point(low), green.point(low)), blue.point(high))
+    mask = blue_mask(screenshot, (left, top, 400, 250))
     centers = []
     for offset in range(0, 100, 25):
         bounds = mask.crop((0, offset, mask.width, offset + 25)).getbbox()
@@ -97,6 +102,25 @@ def level_one_enemies(screenshot):
             x0, y0, x1, y1 = bounds
             centers.append((left + (x0 + x1 - 1) / 2, top + offset + (y0 + y1 - 1) / 2))
     return tuple(centers)
+
+
+def level_two_objects(screenshot):
+    left, top = 125, 125
+    mask = blue_mask(screenshot, (left, top, 425, 275))
+    enemies = []
+    for offset in range(0, 300, 25):
+        bounds = mask.crop((offset, 0, offset + 25, mask.height)).getbbox()
+        if bounds is None:
+            enemies.append(None)
+        else:
+            x0, y0, x1, y1 = bounds
+            enemies.append((left + offset + (x0 + x1 - 1) / 2, top + (y0 + y1 - 1) / 2))
+
+    # Level 2's pellet is stationary at the center of the arena.
+    for red, green, blue in screenshot.crop((271, 196, 279, 204)).convert("RGB").getdata():
+        if red >= 180 and green >= 180 and blue <= 55:
+            return tuple(enemies), (275, 200)
+    return tuple(enemies), None
 
 
 def level_clicks(level):
@@ -156,6 +180,7 @@ class RuffleEnv:
     def boot(self, level=None):
         selected_level = self.level if level is None else level
         level_clicks(selected_level)  # Validate before loading a direct-start variant.
+        self.active_level = selected_level
         path = f"/direct/{selected_level}.swf" if self.direct_reset else "/game.swf"
         for key in KEYS:
             if key in self.keys:
@@ -215,6 +240,7 @@ class RuffleEnv:
     def observe(self):
         level_marker = death_marker = None
         enemies = ()
+        pellet = None
         with Image.open(BytesIO(self.screenshot())) as screenshot:
             # Ignore the HUD and branding above and below the playfield.
             top = 27
@@ -224,9 +250,11 @@ class RuffleEnv:
                 position = (position[0], position[1] + top)
                 level_marker = image_signature(screenshot.crop((225, 0, 325, top)))
                 death_marker = image_signature(screenshot.crop((440, 0, WIDTH, top)))
-                if self.track_enemies:
+                if self.track_enemies and self.active_level == 1:
                     enemies = level_one_enemies(screenshot)
-        return Observation(self.tick, position, signature, level_marker, death_marker, enemies)
+                elif self.track_enemies and self.active_level == 2:
+                    enemies, pellet = level_two_objects(screenshot)
+        return Observation(self.tick, position, signature, level_marker, death_marker, enemies, pellet)
 
 
 def benchmark(env, runs):

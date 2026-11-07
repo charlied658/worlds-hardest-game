@@ -1,0 +1,208 @@
+[
+  {
+    "level": 1,
+    "status": "cleared",
+    "ticks": 246
+  },
+  {
+    "level": 2,
+    "status": "cleared",
+    "ticks": 219
+  },
+  {
+    "level": 3,
+    "pellets_visible": 1,
+    "moves": 31,
+    "status": "died",
+    "reason": "exit route unavailable"
+  },
+  {
+    "level": 4,
+    "pellets_visible": 3,
+    "moves": 11,
+    "status": "died",
+    "reason": "pellet route unavailable"
+  },
+  {
+    "level": 5,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable"
+  },
+  {
+    "level": 6,
+    "pellets_visible": 4,
+    "moves": 0,
+    "status": "no route",
+    "reason": "pellet route unavailable"
+  },
+  {
+    "level": 7,
+    "pellets_visible": 4,
+    "moves": 15,
+    "status": "died",
+    "reason": "pellet route unavailable"
+  },
+  {
+    "level": 8,
+    "pellets_visible": 3,
+    "moves": 0,
+    "status": "no route",
+    "reason": "pellet route unavailable"
+  },
+  {
+    "level": 9,
+    "pellets_visible": 1,
+    "moves": 16,
+    "status": "died",
+    "reason": "exit route unavailable"
+  },
+  {
+    "level": 10,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable"
+  },
+  {
+    "level": 11,
+    "pellets_visible": 2,
+    "moves": 51,
+    "status": "died",
+    "reason": "pellet route unavailable"
+  },
+  {
+    "level": 12,
+    "pellets_visible": 1,
+    "moves": 0,
+    "status": "no route",
+    "reason": "pellet route unavailable"
+  },
+  {
+    "level": 13,
+    "pellets_visible": 0,
+    "moves": 34,
+    "status": "cleared",
+    "reason": null
+  },
+  {
+    "level": 14,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable"
+  },
+  {
+    "level": 15,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable"
+  },
+  {
+    "level": 16,
+    "pellets_visible": 4,
+    "moves": 46,
+    "status": "died",
+    "reason": "pellet route unavailable"
+  },
+  {
+    "level": 17,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "unmodeled",
+    "reason": "could not infer spawn floor or exit"
+  },
+  {
+    "level": 18,
+    "pellets_visible": 67,
+    "moves": 7,
+    "status": "died",
+    "reason": "pellet route unavailable"
+  },
+  {
+    "level": 19,
+    "pellets_visible": 0,
+    "moves": 46,
+    "status": "died",
+    "reason": null
+  },
+  {
+    "level": 20,
+    "pellets_visible": 7,
+    "moves": 30,
+    "status": "partial route",
+    "reason": "pellet route unavailable"
+  },
+  {
+    "level": 21,
+    "pellets_visible": 3,
+    "moves": 53,
+    "status": "died",
+    "reason": "exit route unavailable"
+  },
+  {
+    "level": 22,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable"
+  },
+  {
+    "level": 23,
+    "pellets_visible": 36,
+    "moves": 38,
+    "status": "died",
+    "reason": "pellet route unavailable"
+  },
+  {
+    "level": 24,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable"
+  },
+  {
+    "level": 25,
+    "pellets_visible": 0,
+    "moves": 28,
+    "status": "died",
+    "reason": null
+  },
+  {
+    "level": 26,
+    "pellets_visible": 4,
+    "moves": 23,
+    "status": "died",
+    "reason": "pellet route unavailable"
+  },
+  {
+    "level": 27,
+    "pellets_visible": 1,
+    "moves": 46,
+    "status": "died",
+    "reason": null
+  },
+  {
+    "level": 28,
+    "pellets_visible": 0,
+    "moves": 0,
+    "status": "no route",
+    "reason": "exit route unavailable"
+  },
+  {
+    "level": 29,
+    "pellets_visible": 2,
+    "moves": 51,
+    "status": "died",
+    "reason": "exit route unavailable"
+  },
+  {
+    "level": 30,
+    "pellets_visible": 4,
+    "moves": 37,
+    "status": "died",
+    "reason": "pellet route unavailable"
+  }
+]
