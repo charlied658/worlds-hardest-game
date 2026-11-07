@@ -1,0 +1,146 @@
+{
+  "level": 1,
+  "direct_reset": true,
+  "generation": 1,
+  "seed": 1,
+  "strategy": "crossing",
+  "evaluations": 2,
+  "progress": 4.468274975204479,
+  "cleared": false,
+  "died": true,
+  "ticks": 138,
+  "actions": [
+    [
+      [
+        "ArrowDown"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowDown"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowDown"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowDown"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [],
+      6
+    ],
+    [
+      [],
+      6
+    ],
+    [
+      [],
+      6
+    ],
+    [
+      [
+        "ArrowUp"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowUp"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ]
+  ]
+}

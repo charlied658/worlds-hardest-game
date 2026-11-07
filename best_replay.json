@@ -1,0 +1,90 @@
+{
+  "level": 1,
+  "direct_reset": true,
+  "generation": 2,
+  "seed": 1,
+  "progress": 3.0,
+  "cleared": false,
+  "actions": [
+    [
+      [
+        "ArrowDown"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowDown"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowDown"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowDown"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowRight"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowUp"
+      ],
+      6
+    ],
+    [
+      [
+        "ArrowUp"
+      ],
+      6
+    ],
+    [
+      [],
+      6
+    ],
+    [
+      [
+        "ArrowLeft"
+      ],
+      6
+    ],
+    [
+      [],
+      6
+    ],
+    [
+      [
+        "ArrowLeft"
+      ],
+      6
+    ]
+  ]
+}
