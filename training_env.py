@@ -144,9 +144,9 @@ def image_signature(image):
 
 def is_level_tip(screenshot):
     # Interstitial tips retain the HUD and show a red GO button on a gradient.
-    upper = screenshot.getpixel((0, 27))[0]
-    middle = screenshot.getpixel((0, 200))[0]
-    if middle - upper < 12:
+    upper = screenshot.getpixel((0, 27))[:3]
+    middle = screenshot.getpixel((0, 200))[:3]
+    if max(abs(bottom - top) for top, bottom in zip(upper, middle)) < 12:
         return False
     colors = screenshot.crop((249, 298, 302, 327)).convert("RGB").getcolors(53 * 29)
     return any(red >= 230 and green <= 60 and blue <= 60 for _, (red, green, blue) in colors)
@@ -311,19 +311,22 @@ class RuffleEnv:
         return observation
 
     def step(self, keys=(), ticks=1, *, observe=True):
+        if not isinstance(ticks, int) or ticks < 1:
+            raise ValueError("ticks must be a positive integer")
+        self.set_keys(keys)
+        self._advance(ticks)
+        return self.observe() if observe else None
+
+    def set_keys(self, keys=()):
         keys = set(keys)
         if not keys.issubset(KEYS):
             raise ValueError(f"Use arrow keys from {KEYS}")
-        if not isinstance(ticks, int) or ticks < 1:
-            raise ValueError("ticks must be a positive integer")
         for key in KEYS:
             if key in self.keys and key not in keys:
                 self.page.keyboard.up(key)
             elif key in keys and key not in self.keys:
                 self.page.keyboard.down(key)
         self.keys = keys
-        self._advance(ticks)
-        return self.observe() if observe else None
 
     def screenshot(self):
         if self.fit_window:
@@ -343,11 +346,12 @@ class RuffleEnv:
                 return output.getvalue()
         return self.page.screenshot(timeout=5_000)
 
-    def observe(self):
+    def observe(self, screenshot_bytes=None):
         level_marker = death_marker = None
         enemies = ()
         pellet = None
-        with Image.open(BytesIO(self.screenshot())) as screenshot:
+        png = self.screenshot() if screenshot_bytes is None else screenshot_bytes
+        with Image.open(BytesIO(png)) as screenshot:
             # Ignore the HUD and branding above and below the playfield.
             top = 27
             position = player_center(screenshot, (0, top, WIDTH, HEIGHT - 27))

@@ -1,0 +1,621 @@
+{
+  "seed": 1,
+  "levels": [
+    3,
+    4,
+    13
+  ],
+  "forecast_ticks": 540,
+  "train_delays": [
+    0
+  ],
+  "test_delays": [
+    12,
+    24
+  ],
+  "baseline_genome": {
+    "clearance": 14,
+    "goal_weight": 1.0,
+    "wait_cost": 0.0,
+    "turn_cost": 0.0
+  },
+  "history": [
+    {
+      "generation": 1,
+      "genome": {
+        "clearance": 13,
+        "goal_weight": 0.8,
+        "wait_cost": 0,
+        "turn_cost": 0.139
+      },
+      "clears": 2,
+      "attempts": 3,
+      "mean_progress": 0.8333333333333334,
+      "survivors": 3,
+      "mean_ticks": 191.33333333333334
+    },
+    {
+      "generation": 2,
+      "genome": {
+        "clearance": 13,
+        "goal_weight": 0.8,
+        "wait_cost": 0,
+        "turn_cost": 0.139
+      },
+      "clears": 2,
+      "attempts": 3,
+      "mean_progress": 0.8333333333333334,
+      "survivors": 3,
+      "mean_ticks": 191.33333333333334
+    },
+    {
+      "generation": 3,
+      "genome": {
+        "clearance": 13,
+        "goal_weight": 0.8,
+        "wait_cost": 0,
+        "turn_cost": 0.139
+      },
+      "clears": 2,
+      "attempts": 3,
+      "mean_progress": 0.8333333333333334,
+      "survivors": 3,
+      "mean_ticks": 191.33333333333334
+    }
+  ],
+  "candidates": [
+    {
+      "genome": {
+        "clearance": 14,
+        "goal_weight": 1.0,
+        "wait_cost": 0.0,
+        "turn_cost": 0.0
+      },
+      "results": [
+        {
+          "level": 3,
+          "delay": 0,
+          "status": "partial route",
+          "progress": 0.5,
+          "pellets_collected": 1,
+          "pellets_total": 1,
+          "ticks": 278,
+          "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+        },
+        {
+          "level": 4,
+          "delay": 0,
+          "status": "died",
+          "progress": 0.75,
+          "pellets_collected": 2,
+          "pellets_total": 3,
+          "ticks": 110,
+          "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+        },
+        {
+          "level": 13,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 0,
+          "pellets_total": 0,
+          "ticks": 100,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "genome": {
+        "clearance": 13,
+        "goal_weight": 0.8,
+        "wait_cost": 0,
+        "turn_cost": 0.139
+      },
+      "results": [
+        {
+          "level": 3,
+          "delay": 0,
+          "status": "partial route",
+          "progress": 0.5,
+          "pellets_collected": 1,
+          "pellets_total": 1,
+          "ticks": 278,
+          "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+        },
+        {
+          "level": 4,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 3,
+          "pellets_total": 3,
+          "ticks": 196,
+          "reason": null
+        },
+        {
+          "level": 13,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 0,
+          "pellets_total": 0,
+          "ticks": 100,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "genome": {
+        "clearance": 15,
+        "goal_weight": 1.048,
+        "wait_cost": 0,
+        "turn_cost": 0.051
+      },
+      "results": [
+        {
+          "level": 3,
+          "delay": 0,
+          "status": "no route",
+          "progress": 0.0,
+          "pellets_collected": 0,
+          "pellets_total": 1,
+          "ticks": 2,
+          "reason": "pellet route unavailable: search reached its state limit"
+        },
+        {
+          "level": 4,
+          "delay": 0,
+          "status": "died",
+          "progress": 0.75,
+          "pellets_collected": 2,
+          "pellets_total": 3,
+          "ticks": 110,
+          "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+        },
+        {
+          "level": 13,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 0,
+          "pellets_total": 0,
+          "ticks": 100,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "genome": {
+        "clearance": 13,
+        "goal_weight": 1.05,
+        "wait_cost": 0.027,
+        "turn_cost": 0.164
+      },
+      "results": [
+        {
+          "level": 3,
+          "delay": 0,
+          "status": "partial route",
+          "progress": 0.5,
+          "pellets_collected": 1,
+          "pellets_total": 1,
+          "ticks": 278,
+          "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+        },
+        {
+          "level": 4,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 3,
+          "pellets_total": 3,
+          "ticks": 196,
+          "reason": null
+        },
+        {
+          "level": 13,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 0,
+          "pellets_total": 0,
+          "ticks": 100,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "genome": {
+        "clearance": 14,
+        "goal_weight": 0.8,
+        "wait_cost": 0,
+        "turn_cost": 0.676
+      },
+      "results": [
+        {
+          "level": 3,
+          "delay": 0,
+          "status": "partial route",
+          "progress": 0.5,
+          "pellets_collected": 1,
+          "pellets_total": 1,
+          "ticks": 278,
+          "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+        },
+        {
+          "level": 4,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 3,
+          "pellets_total": 3,
+          "ticks": 196,
+          "reason": null
+        },
+        {
+          "level": 13,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 0,
+          "pellets_total": 0,
+          "ticks": 100,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "genome": {
+        "clearance": 13,
+        "goal_weight": 0.856,
+        "wait_cost": 0.009,
+        "turn_cost": 0
+      },
+      "results": [
+        {
+          "level": 3,
+          "delay": 0,
+          "status": "partial route",
+          "progress": 0.5,
+          "pellets_collected": 1,
+          "pellets_total": 1,
+          "ticks": 278,
+          "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+        },
+        {
+          "level": 4,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 3,
+          "pellets_total": 3,
+          "ticks": 196,
+          "reason": null
+        },
+        {
+          "level": 13,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 0,
+          "pellets_total": 0,
+          "ticks": 100,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "genome": {
+        "clearance": 12,
+        "goal_weight": 0.898,
+        "wait_cost": 0.343,
+        "turn_cost": 0.071
+      },
+      "results": [
+        {
+          "level": 3,
+          "delay": 0,
+          "status": "died",
+          "progress": 0.04999999999999999,
+          "pellets_collected": 0,
+          "pellets_total": 1,
+          "ticks": 72,
+          "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+        },
+        {
+          "level": 4,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 3,
+          "pellets_total": 3,
+          "ticks": 196,
+          "reason": null
+        },
+        {
+          "level": 13,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 0,
+          "pellets_total": 0,
+          "ticks": 100,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "genome": {
+        "clearance": 14,
+        "goal_weight": 1.094,
+        "wait_cost": 0,
+        "turn_cost": 0
+      },
+      "results": [
+        {
+          "level": 3,
+          "delay": 0,
+          "status": "partial route",
+          "progress": 0.5,
+          "pellets_collected": 1,
+          "pellets_total": 1,
+          "ticks": 278,
+          "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+        },
+        {
+          "level": 4,
+          "delay": 0,
+          "status": "died",
+          "progress": 0.75,
+          "pellets_collected": 2,
+          "pellets_total": 3,
+          "ticks": 110,
+          "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+        },
+        {
+          "level": 13,
+          "delay": 0,
+          "status": "cleared",
+          "progress": 1.0,
+          "pellets_collected": 0,
+          "pellets_total": 0,
+          "ticks": 100,
+          "reason": null
+        }
+      ]
+    }
+  ],
+  "baseline_training": [
+    {
+      "level": 3,
+      "delay": 0,
+      "status": "partial route",
+      "progress": 0.5,
+      "pellets_collected": 1,
+      "pellets_total": 1,
+      "ticks": 278,
+      "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+    },
+    {
+      "level": 4,
+      "delay": 0,
+      "status": "died",
+      "progress": 0.75,
+      "pellets_collected": 2,
+      "pellets_total": 3,
+      "ticks": 110,
+      "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+    },
+    {
+      "level": 13,
+      "delay": 0,
+      "status": "cleared",
+      "progress": 1.0,
+      "pellets_collected": 0,
+      "pellets_total": 0,
+      "ticks": 100,
+      "reason": null
+    }
+  ],
+  "best_training": [
+    {
+      "level": 3,
+      "delay": 0,
+      "status": "partial route",
+      "progress": 0.5,
+      "pellets_collected": 1,
+      "pellets_total": 1,
+      "ticks": 278,
+      "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+    },
+    {
+      "level": 4,
+      "delay": 0,
+      "status": "cleared",
+      "progress": 1.0,
+      "pellets_collected": 3,
+      "pellets_total": 3,
+      "ticks": 196,
+      "reason": null
+    },
+    {
+      "level": 13,
+      "delay": 0,
+      "status": "cleared",
+      "progress": 1.0,
+      "pellets_collected": 0,
+      "pellets_total": 0,
+      "ticks": 100,
+      "reason": null
+    }
+  ],
+  "best_genome": {
+    "clearance": 13,
+    "goal_weight": 0.8,
+    "wait_cost": 0,
+    "turn_cost": 0.139
+  },
+  "baseline_test": [
+    {
+      "level": 3,
+      "delay": 12,
+      "status": "partial route",
+      "progress": 0.5,
+      "pellets_collected": 1,
+      "pellets_total": 1,
+      "ticks": 266,
+      "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+    },
+    {
+      "level": 3,
+      "delay": 24,
+      "status": "partial route",
+      "progress": 0.5,
+      "pellets_collected": 1,
+      "pellets_total": 1,
+      "ticks": 254,
+      "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+    },
+    {
+      "level": 4,
+      "delay": 12,
+      "status": "died",
+      "progress": 0.75,
+      "pellets_collected": 2,
+      "pellets_total": 3,
+      "ticks": 98,
+      "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+    },
+    {
+      "level": 4,
+      "delay": 24,
+      "status": "died",
+      "progress": 0.8020833333333334,
+      "pellets_collected": 3,
+      "pellets_total": 3,
+      "ticks": 110,
+      "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+    },
+    {
+      "level": 13,
+      "delay": 12,
+      "status": "cleared",
+      "progress": 1.0,
+      "pellets_collected": 0,
+      "pellets_total": 0,
+      "ticks": 108,
+      "reason": null
+    },
+    {
+      "level": 13,
+      "delay": 24,
+      "status": "cleared",
+      "progress": 1.0,
+      "pellets_collected": 0,
+      "pellets_total": 0,
+      "ticks": 100,
+      "reason": null
+    }
+  ],
+  "evolved_test": [
+    {
+      "level": 3,
+      "delay": 12,
+      "status": "partial route",
+      "progress": 0.5,
+      "pellets_collected": 1,
+      "pellets_total": 1,
+      "ticks": 266,
+      "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+    },
+    {
+      "level": 3,
+      "delay": 24,
+      "status": "partial route",
+      "progress": 0.5,
+      "pellets_collected": 1,
+      "pellets_total": 1,
+      "ticks": 254,
+      "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+    },
+    {
+      "level": 4,
+      "delay": 12,
+      "status": "died",
+      "progress": 0.8229166666666666,
+      "pellets_collected": 3,
+      "pellets_total": 3,
+      "ticks": 100,
+      "reason": "exit route unavailable: enemy clearance blocks all explored routes within the forecast"
+    },
+    {
+      "level": 4,
+      "delay": 24,
+      "status": "cleared",
+      "progress": 1.0,
+      "pellets_collected": 3,
+      "pellets_total": 3,
+      "ticks": 196,
+      "reason": null
+    },
+    {
+      "level": 13,
+      "delay": 12,
+      "status": "cleared",
+      "progress": 1.0,
+      "pellets_collected": 0,
+      "pellets_total": 0,
+      "ticks": 106,
+      "reason": null
+    },
+    {
+      "level": 13,
+      "delay": 24,
+      "status": "cleared",
+      "progress": 1.0,
+      "pellets_collected": 0,
+      "pellets_total": 0,
+      "ticks": 100,
+      "reason": null
+    }
+  ],
+  "elapsed_seconds": 241.43033160001505,
+  "browser": "edge",
+  "browser_version": "157.0.4341.42",
+  "population": 4,
+  "generations": 3,
+  "summary": {
+    "training": {
+      "baseline": {
+        "clears": 1,
+        "attempts": 3,
+        "mean_progress": 0.75,
+        "survivors": 2,
+        "mean_ticks": 162.66666666666666
+      },
+      "evolved": {
+        "clears": 2,
+        "attempts": 3,
+        "mean_progress": 0.8333333333333334,
+        "survivors": 3,
+        "mean_ticks": 191.33333333333334
+      }
+    },
+    "held_out": {
+      "baseline": {
+        "clears": 2,
+        "attempts": 6,
+        "mean_progress": 0.7586805555555556,
+        "survivors": 4,
+        "mean_ticks": 156
+      },
+      "evolved": {
+        "clears": 3,
+        "attempts": 6,
+        "mean_progress": 0.8038194444444444,
+        "survivors": 5,
+        "mean_ticks": 170.33333333333334
+      }
+    }
+  }
+}

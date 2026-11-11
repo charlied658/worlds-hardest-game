@@ -80,11 +80,15 @@ def start_at_level(swf, level):
             end += 2 + size
     action = body[start:end + 1]
 
-    # Append a DoAction tag to frame one, after the game's initialization.
+    return append_first_frame_action(swf, action)
+
+
+def append_first_frame_action(swf, action):
+    body = zlib.decompress(swf[8:])
     offset = (5 + 4 * (body[0] >> 3) + 7) // 8 + 4
     while offset < len(body):
         tag, = struct.unpack_from("<H", body, offset)
-        if tag == 1 << 6:  # ShowFrame
+        if tag == 1 << 6:
             break
         size = tag & 63
         offset += 2

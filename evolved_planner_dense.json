@@ -1,0 +1,20 @@
+{
+  "format": "planner_genome_v1",
+  "genome": {
+    "clearance": 13,
+    "goal_weight": 0.8,
+    "wait_cost": 0,
+    "turn_cost": 0.139
+  },
+  "fitness_version": "remaining_task_distance_v2",
+  "forecast_ticks": 540,
+  "seed": 1,
+  "levels": [
+    3,
+    4,
+    13
+  ],
+  "train_delays": [
+    0
+  ]
+}

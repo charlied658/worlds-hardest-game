@@ -74,8 +74,8 @@ On Windows, use a path such as `"C:\path\to\ruffle-files"`. The folder must cont
 
 ### Choose a browser
 
-All five browser-based commands (`training_env.py`, `evolve.py`, `reactive.py`,
-`plan_level1.py`, and `benchmark_levels.py`) accept `--browser chromium|chrome|edge`.
+The browser commands (`training_env.py`, `evolve.py`, `reactive.py`,
+`evolve_planner.py`, `plan_level1.py`, and `benchmark_levels.py`) accept `--browser chromium|chrome|edge`.
 The default is now Playwright's bundled **Chromium**; older versions of this project
 always launched Edge. Chrome and Edge must already be installed when selected.
 
@@ -208,6 +208,98 @@ python reactive.py --watch reactive_policy.json --delay 18
 Omit `--baseline crossing_replay.json` if you do not have a saved fixed replay to compare. The reactive policy uses the fixed opening to reach the safe corner, then chooses a direction or waits every six ticks based on the next waypoint and the blue enemies' estimated motion. Training uses three starting delays per candidate. The final comparison uses three different delays and gives the fixed replay and the policy the same tick budget.
 
 The trainer saves the best weights as soon as they improve. Watch mode runs the saved policy live. Use different `--delay` values to see how it handles different enemy positions. Enemy tracking uses the four horizontal lanes on level 1.
+
+## Build and replay the non-evolutionary baseline
+
+The saved baseline clears **30/30 levels** without evolution. Each route has
+also been replayed successfully in the original SWF without telemetry. These
+are independent, deterministic level starts; this does not measure robustness
+to different enemy phases or a continuous playthrough from level 1.
+
+```sh
+python baseline_solver.py --browser edge
+python baseline_solver.py --browser edge --verify-original
+python baseline_solver.py --browser edge --watch --replay
+```
+
+The solver saves each confirmed clear in `baseline_routes.json` and skips saved
+clears when resumed. Use `--levels 10 17` for a subset, `--ticks 2400` for a
+longer forecast, or `--retry` to solve an already cleared level again.
+
+It records the actual enemy shapes, queries the game's wall collision map, uses
+the game's center and edge collision probes, and searches for safe intervals in
+which the square can wait and move.
+Pellet planning keeps several candidate arrivals so it can try alternative routes.
+Levels with up to four pellets use a joint search over pickup history, which
+allows collecting pellets and returning through the same corridor to the exit.
+Calibration data is cached in `.baseline-cache/`, which is excluded from Git.
+
+Baseline development uses an in-memory SWF copy with a root callback
+that reports native frame count, position, pellet count, deaths, and level changes
+through Ruffle's [trace observer](https://ruffle.rs/js-docs/master/interfaces/Player.PlayerV1.html).
+Calibration temporarily hides the other display objects so pellets cannot
+occlude enemies in the recording. Each actual attempt starts with a fresh normal
+display. The original-verification command
+replays the saved inputs and virtual-clock advances in the SWF without this callback
+and records whether that replay also cleared. Level 30 additionally checks its
+finish-screen signature.
+
+Install the updated `requirements-training.txt` if NumPy is not already available.
+The saved level routes are a baseline for later evolutionary experiments.
+Use `python baseline_solver.py --browser edge --watch --replay --levels 26`
+to watch one level, or omit `--levels 26` to watch all 30 in order. Watch mode
+paces playback in real time; solving and verification advance a virtual clock.
+
+## Evolve planner settings across levels
+
+```sh
+python evolve_planner.py --levels 3 4 13 --population 4 --generations 3
+python evolve_planner.py --watch evolved_planner.json --levels 4 --delay 24
+```
+
+Use `--browser edge` on the Windows setup or choose another installed browser.
+The genome contains obstacle clearance, goal-search weight, waiting cost, and
+direction-change cost. The same fixed floor model, forecast length, and maximum
+search expansions apply to every candidate. Recorded enemy motion is reused
+within each level and delay.
+
+Selection prioritizes confirmed level clears, followed by average fitness within
+the levels. Fitness is measured every two game ticks. On pellet levels it gives
+40% weight to the fraction of pellets collected and 60% to progress along the
+estimated remaining route through all uncollected pellets and then the exit.
+Levels without pellets use route progress alone. The route estimate follows the
+walkable floor, so moving around a wall or returning to spawn after collecting
+pellets can keep earning credit.
+
+The distance estimate chooses the shortest static pellet order for up to ten
+pellets. Larger collections use a spanning-tree estimate to keep scoring
+tractable. Enemy motion affects the attempted route, while this fitness distance
+measures progress through the level geometry. Fitness keeps the best point
+reached during an attempt. Repeating the same movement earns no additional
+credit. A confirmed clear scores 100%; other attempts are capped at 99%.
+Survival and attempt duration break ties.
+
+The default experiment trains at delay 0 and tests the selected genome at delays
+12 and 24. Test outcomes do not influence selection. `planner_evolution_report.json`
+contains per-attempt results for the fixed baseline and evolved planner, along
+with generation history. The baseline is saved to `evolved_planner.json`
+initially, then replaced whenever an evaluated candidate improves on it. Both files are replaced
+when you rerun the command. Pass `--output` and `--report` to keep experiments
+separate, and use `--seed` for additional independent runs.
+
+Every attempt includes a `progress_trace` recording each new fitness best, its
+game tick, collected pellets, and estimated remaining route distance. Route and
+pellet components are reported separately. The report identifies the fitness
+version, since scores from the earlier distance-to-spawn normalization and the
+new remaining-route score should be evaluated separately.
+
+```sh
+python evolve_planner.py --population 4 --generations 3 --output evolved_planner_dense.json --report planner_evolution_dense_report.json
+python evolve_planner.py --watch evolved_planner_dense.json --levels 4 --delay 24
+```
+
+This is a small test of tuning the existing route planner. It keeps the planner's
+recorded future enemy motion and hand-built search algorithm.
 
 ## Level 1 route-planning baseline
 

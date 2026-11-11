@@ -10,7 +10,7 @@ from math import ceil, floor
 from pathlib import Path
 from time import perf_counter, sleep
 
-from PIL import Image
+from PIL import Image, ImageChops
 
 from direct_start import level_exits
 from evolve import ACTIONS
@@ -90,7 +90,18 @@ def components(points):
         yield group
 
 
-def layout(image, origin, exit_center):
+def pellet_centers(image):
+    red, green, blue = image.crop((0, 26, WIDTH, 374)).convert("RGB").split()
+    high = [255 if value >= 220 else 0 for value in range(256)]
+    low = [255 if value <= 35 else 0 for value in range(256)]
+    mask = ImageChops.multiply(ImageChops.multiply(red.point(high), green.point(high)), blue.point(low))
+    yellow = {(index % WIDTH, index // WIDTH + 26)
+              for index, value in enumerate(mask.tobytes()) if value}
+    return [(sum(x for x, _ in group) / len(group), sum(y for _, y in group) / len(group))
+            for group in components(yellow) if len(group) >= 4]
+
+
+def layout(image, origin, exit_center, *, wall_padding=9, cross_clearance=False):
     floor_tiles = set()
     green_tiles = set()
     for row in range(1, HEIGHT // TILE - 1):
@@ -103,14 +114,7 @@ def layout(image, origin, exit_center):
             if colors.get(GREEN, 0) >= 125:
                 green_tiles.add((column, row))
 
-    yellow = set()
-    for y in range(26, 374):
-        for x in range(WIDTH):
-            r, g, b = image.getpixel((x, y))
-            if r >= 220 and g >= 220 and b <= 35:
-                yellow.add((x, y))
-    pellets = [(sum(x for x, _ in group) / len(group), sum(y for _, y in group) / len(group))
-               for group in components(yellow) if len(group) >= 4]
+    pellets = pellet_centers(image)
 
     origin_x, origin_y = origin
     spawn_tile = (int(origin_x // TILE), int(origin_y // TILE))
@@ -128,8 +132,12 @@ def layout(image, origin, exit_center):
         y = origin_y + gy * STRIDE
         for gx in range(ceil(-origin_x / STRIDE), floor((WIDTH - 1 - origin_x) / STRIDE) + 1):
             x = origin_x + gx * STRIDE
-            if all((int(px // TILE), int(py // TILE)) in floor_tiles
-                   for px in (x - 9, x + 9) for py in (y - 9, y + 9)):
+            points = ((x, y), (x - wall_padding, y), (x + wall_padding, y),
+                      (x, y - wall_padding), (x, y + wall_padding))
+            if not cross_clearance:
+                points = tuple((px, py) for px in (x - wall_padding, x + wall_padding)
+                               for py in (y - wall_padding, y + wall_padding))
+            if all((int(px // TILE), int(py // TILE)) in floor_tiles for px, py in points):
                 floor_positions.add((gx, gy))
                 if all((int(px // TILE), int(py // TILE)) in target_zone
                        for px in (x - 6, x + 6) for py in (y - 6, y + 6)):
@@ -137,7 +145,7 @@ def layout(image, origin, exit_center):
     return floor_positions, pellets, exit_positions
 
 
-def record_hazards(env, origin, ticks):
+def record_hazard_frames(env, ticks):
     env.page.evaluate(CAPTURE)
     try:
         env.step(ticks=ticks, observe=False)
@@ -153,6 +161,10 @@ def record_hazards(env, origin, ticks):
                    for _, boxes in frames[::max(1, len(frames) // 24)]
                    for left, top, right, bottom in boxes]
         env.watch_status(enemySamples=samples[::max(1, len(samples) // 240)][:240])
+    return frames
+
+
+def hazard_timeline(frames, origin, ticks, padding=HAZARD_PADDING):
     timeline = []
     frame_index = 0
     origin_x, origin_y = origin
@@ -165,13 +177,17 @@ def record_hazards(env, origin, ticks):
             blocked = set()
             for left, top, right, bottom in frames[frame_index][1]:
                 # Include the enemy outline, the player's extent, and the sampling margin.
-                for y in range(ceil((top - HAZARD_PADDING - origin_y) / STRIDE),
-                               floor((bottom + HAZARD_PADDING - origin_y) / STRIDE) + 1):
-                    for x in range(ceil((left - HAZARD_PADDING - origin_x) / STRIDE),
-                                   floor((right + HAZARD_PADDING - origin_x) / STRIDE) + 1):
+                for y in range(ceil((top - padding - origin_y) / STRIDE),
+                               floor((bottom + padding - origin_y) / STRIDE) + 1):
+                    for x in range(ceil((left - padding - origin_x) / STRIDE),
+                                   floor((right + padding - origin_x) / STRIDE) + 1):
                         blocked.add((x, y))
         timeline.append(blocked)
     return timeline
+
+
+def record_hazards(env, origin, ticks):
+    return hazard_timeline(record_hazard_frames(env, ticks), origin, ticks)
 
 
 def floor_graph(tiles):
@@ -194,7 +210,8 @@ def floor_graph(tiles):
     return graph
 
 
-def search(start, targets, graph, timeline, limit=80_000):
+def search(start, targets, graph, timeline, limit=80_000, *,
+           goal_weight=1.0, wait_cost=0.0, turn_cost=0.0):
     # A reverse search through the static floor gives a wall-aware distance bound.
     distance = dict.fromkeys(targets & graph.keys(), 0)
     if not distance:
@@ -212,15 +229,19 @@ def search(start, targets, graph, timeline, limit=80_000):
     if start[2] + distance[start[:2]] >= len(timeline):
         return None, "shortest wall-only route exceeds the remaining forecast"
     order = count()
-    queue = [(0, next(order), start)]
-    parents = {start: None}
+    start_key = (*start, -1)
+    queue = [(0, next(order), start_key, 0.0)]
+    parents = {start_key: None}
+    costs = {start_key: 0.0}
     for _ in range(limit):
         if not queue:
             break
-        _, _, state = heappop(queue)
-        x, y, tick = state
+        _, _, state, cost = heappop(queue)
+        if cost != costs[state]:
+            continue
+        x, y, tick, previous_action = state
         if (x, y) in targets:
-            end = state
+            end = state[:3]
             actions = deque()
             while parents[state] is not None:
                 state, action = parents[state]
@@ -231,18 +252,23 @@ def search(start, targets, graph, timeline, limit=80_000):
             arrival = tick + STEP
             if end not in distance or arrival + distance[end] >= len(timeline):
                 continue
-            next_state = (*end, arrival)
-            if next_state in parents:
+            last_action = action if turn_cost else -1
+            next_state = (*end, arrival, last_action)
+            next_cost = cost + STEP * (1 + (wait_cost if action == 0 else 0))
+            if previous_action >= 0 and previous_action != action:
+                next_cost += turn_cost
+            if next_cost >= costs.get(next_state, float("inf")):
                 continue
             if all(point not in timeline[tick + offset] for offset, point in enumerate(points, 1)):
                 parents[next_state] = (state, action)
-                heappush(queue, (arrival + distance[end], next(order), next_state))
+                costs[next_state] = next_cost
+                heappush(queue, (next_cost + goal_weight * distance[end], next(order), next_state, next_cost))
     reason = ("search reached its state limit" if queue
               else "enemy clearance blocks all explored routes within the forecast")
     return None, reason
 
 
-def plan(origin, tiles, pellets, exits, timeline):
+def plan(origin, tiles, pellets, exits, timeline, *, goal_weight=1.0, wait_cost=0.0, turn_cost=0.0):
     graph = floor_graph(tiles)
     state = (0, 0, 0)
     actions = []
@@ -253,13 +279,15 @@ def plan(origin, tiles, pellets, exits, timeline):
     }
     while remaining:
         targets = set().union(*remaining.values())
-        segment, reason = search(state, targets, graph, timeline)
+        segment, reason = search(state, targets, graph, timeline, goal_weight=goal_weight,
+                                 wait_cost=wait_cost, turn_cost=turn_cost)
         if segment is None:
             return actions, f"pellet route unavailable: {reason}"
         state, moves = segment
         actions.extend(moves)
         remaining = {pellet: cells for pellet, cells in remaining.items() if state[:2] not in cells}
-    segment, reason = search(state, exits, graph, timeline)
+    segment, reason = search(state, exits, graph, timeline, goal_weight=goal_weight,
+                             wait_cost=wait_cost, turn_cost=turn_cost)
     if segment is None:
         return actions, f"exit route unavailable: {reason}"
     return actions + segment[1], None
